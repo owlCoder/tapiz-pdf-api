@@ -1,0 +1,18 @@
+{
+  "name": "evident-pdf-service",
+  "version": "1.0.0",
+  "description": "Vercel serverless PDF export service for Evidentiraj",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7"
+  },
+  "devDependencies": {
+    "@vercel/node": "^5.0.0",
+    "typescript": "^5.9.3"
+  }
+}

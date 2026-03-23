@@ -466,5 +466,8 @@ app.post("/api/pdf/attendances", async (req, res) => {
 // Health check
 app.get("/api/pdf/health", (_req, res) => res.json({ ok: true }));
 
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Excel API running on port ${PORT}`));
+
 // Export for Vercel
 module.exports = app;

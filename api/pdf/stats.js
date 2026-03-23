@@ -171,15 +171,16 @@ const tAlt  = { fillColor: C.gray50 };
 const setCorsHeaders = (res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours cache for preflight
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Max-Age", "86400");
 };
 
 module.exports = async (req, res) => {
   // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
     setCorsHeaders(res);
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
 
   // Allow only POST requests

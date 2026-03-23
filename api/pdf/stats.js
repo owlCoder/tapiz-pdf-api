@@ -167,15 +167,24 @@ const tHead = { fillColor: C.gray50, textColor: C.gray500, fontStyle: "bold", fo
 const tBody = { fontSize: 8, textColor: C.gray700, lineColor: C.gray100, lineWidth: 0.2 };
 const tAlt  = { fillColor: C.gray50 };
 
+// CORS middleware function
+const setCorsHeaders = (res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours cache for preflight
+};
+
 module.exports = async (req, res) => {
+  // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    setCorsHeaders(res);
     return res.status(200).end();
   }
 
+  // Allow only POST requests
   if (req.method !== "POST") {
+    setCorsHeaders(res);
     return res.status(405).json({ error: "Method not allowed" });
   }
 
@@ -183,6 +192,7 @@ module.exports = async (req, res) => {
     const { stats, matrix, subject } = req.body;
 
     if (!stats || !subject) {
+      setCorsHeaders(res);
       return res.status(400).json({ error: "Missing required fields: stats, subject" });
     }
 
@@ -290,14 +300,17 @@ module.exports = async (req, res) => {
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
     const filename = `statistike_${subject.code}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    // Set CORS and response headers
+    setCorsHeaders(res);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Length", pdfBuffer.length);
+    
     return res.status(200).send(pdfBuffer);
 
   } catch (err) {
     console.error("PDF stats generation error:", err);
+    setCorsHeaders(res);
     return res.status(500).json({ error: "Failed to generate PDF", details: String(err) });
   }
 };

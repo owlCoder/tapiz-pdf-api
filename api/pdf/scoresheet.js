@@ -4,18 +4,34 @@
 const { jsPDF } = require("jspdf");
 const autoTable = require("jspdf-autotable").default;
 
+// CORS middleware function
+const setCorsHeaders = (res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours cache for preflight
+};
+
 module.exports = async (req, res) => {
+  // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    setCorsHeaders(res);
     return res.status(200).end();
   }
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  
+  // Allow only POST requests
+  if (req.method !== "POST") {
+    setCorsHeaders(res);
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   try {
     const { name, academicYear, columns, rows } = req.body;
-    if (!name || !columns || !rows) return res.status(400).json({ error: "Missing fields" });
+    
+    if (!name || !columns || !rows) {
+      setCorsHeaders(res);
+      return res.status(400).json({ error: "Missing fields: name, columns, rows are required" });
+    }
 
     const visCols = columns.filter(c => !c.isHidden);
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
@@ -59,13 +75,18 @@ module.exports = async (req, res) => {
     });
 
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    const filename = `${name}_${academicYear ?? ""}.pdf`.replace(/[^a-z0-9_\- ]/gi, "_");
+    
+    // Set CORS and response headers
+    setCorsHeaders(res);
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${name}_${academicYear ?? ""}.pdf"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Length", pdfBuffer.length);
+    
     return res.status(200).send(pdfBuffer);
   } catch (err) {
-    console.error(err);
+    console.error("PDF scoresheet generation error:", err);
+    setCorsHeaders(res);
     return res.status(500).json({ error: "Failed to generate PDF", details: String(err) });
   }
 };

@@ -515,7 +515,7 @@ app.post("/api/pdf/attendances", async (req, res) => {
         0: { cellWidth: 55 },
         1: { cellWidth: 35, font: "courier", fontSize: 7 },
         2: { cellWidth: 16, halign: "center" },
-        3: { cellWidth: 50 },
+        3: { },
       },
       didParseCell: (data) => {
         if (data.column.index === 2 && data.section === "body") {

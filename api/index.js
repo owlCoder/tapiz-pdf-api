@@ -304,15 +304,27 @@ app.post("/api/pdf/stats", async (req, res) => {
           4: { cellWidth: 30, halign: "center" },
         },
         didParseCell: (data) => {
-          if (data.column.index === 4 && data.section === "body") {
-            const ok = data.cell.text[0]?.startsWith("Ispunjeno");
-            data.cell.styles.textColor = ok ? C.emerald : C.red;
-            data.cell.styles.fillColor = ok ? C.emerald50 : C.red50;
+          if (data.section === "body" && data.column.index === 4) {
+            const status = data.cell.text[0];
+            if (status === "Ispunjeno") {
+              data.cell.styles.textColor = C.emerald;
+              data.cell.styles.fillColor = C.emerald50;
+            } else {
+              data.cell.styles.textColor = C.red;
+              data.cell.styles.fillColor = C.red50;
+            }
             data.cell.styles.fontStyle = "bold";
           }
-          if (data.column.index === 3 && data.section === "body") {
-            const p2 = parseInt(data.cell.text[0]);
-            data.cell.styles.textColor = p2 >= attendanceRequired ? C.emerald : p2 >= 50 ? C.amber : C.red;
+
+          if (data.section === "body" && data.column.index === 3) {
+            const pct = parseInt(data.cell.text[0]);
+            if (pct >= attendanceRequired) {
+              data.cell.styles.textColor = C.emerald;
+            } else if (pct >= 50) {
+              data.cell.styles.textColor = C.amber;
+            } else {
+              data.cell.styles.textColor = C.red;
+            }
           }
         },
         margin: { left: 14, right: 14 },

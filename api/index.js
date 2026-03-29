@@ -316,6 +316,7 @@ app.post("/api/pdf/stats", async (req, res) => {
           }
         },
         margin: { left: 14, right: 14 },
+        tableWidth: "auto",
       });
     }
 

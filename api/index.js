@@ -276,13 +276,16 @@ app.post("/api/pdf/stats", async (req, res) => {
       y = sectionTitle(doc, "Prisustvo po studentu", y) + 2;
 
       const bodyRows = perStudent.map((s) => {
-        const p = totalSessions > 0 ? Math.round(parseInt(s.count || 0) / totalSessions * 100) : 0;
+        const count = Number(s.count ?? 0);
+        const p = totalSessions > 0 ? Math.round((count / totalSessions) * 100) : 0;
+        const status = p >= attendanceRequired ? "Ispunjeno" : "Nije ispunjeno";
+
         return [
           cyrillicToLatin(`${s.lastName || ""} ${s.firstName || ""}`),
           `${s.smer || ""} ${s.indexNumber || ""}/${s.enrollmentYear || ""}`,
-          `${s.count || 0}/${totalSessions}`,
+          `${count}/${totalSessions}`,
           `${p}%`,
-          p >= attendanceRequired ? "Ispunjeno" : "Nije ispunjeno",
+          status,
         ];
       });
 

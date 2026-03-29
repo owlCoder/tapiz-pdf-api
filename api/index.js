@@ -8,36 +8,27 @@ const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "50mb" }));
 
-// ─── Serbian Latin normalizer (improved) ─────────────────────────────────
-function toSerbianLatin(text) {
-  if (text === undefined || text === null) return "";
-  const str = String(text);
-  return str
-    .replace(/š/g, "s").replace(/Š/g, "S")
-    .replace(/đ/g, "dj").replace(/Đ/g, "Dj")
-    .replace(/č/g, "c").replace(/Č/g, "C")
-    .replace(/ć/g, "c").replace(/Ć/g, "C")
-    .replace(/ž/g, "z").replace(/Ž/g, "Z");
+const NOTO_SANS_BASE64 = require("./noto.js");
+
+function addCyrillicFont(doc) {
+  const fontBytes = Buffer.from(NOTO_SANS_BASE64, "base64");
+  doc.addFileToVFS("NotoSans-Regular.ttf", fontBytes.toString("binary"));
+  doc.addFont("NotoSans-Regular.ttf", "NotoSans", "normal");
+  doc.setFont("NotoSans");
 }
 
-// Date helpers with Latin output
+// ─── Pomoćne funkcije za formatiranje datuma (ćirilica) ──────────────────
 function formatDate(iso) {
   const d = new Date(iso);
-  const day = d.getDate().toString().padStart(2, '0');
-  const month = (d.getMonth() + 1).toString().padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}.${month}.${year}.`;
+  return d.toLocaleDateString("sr-RS", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function formatDateTime(iso) {
   const d = new Date(iso);
-  const dateStr = formatDate(iso);
-  const hours = d.getHours().toString().padStart(2, '0');
-  const minutes = d.getMinutes().toString().padStart(2, '0');
-  return `${dateStr} ${hours}:${minutes}`;
+  return `${formatDate(iso)} ${d.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-// ─── Design tokens (unchanged) ───────────────────────────────────────────
+// ─── Dizajn (boje, zaobljenja, značke) ───────────────────────────────────
 const C = {
   primary:    [23,  94,  141],
   primary50:  [242, 248, 253],
@@ -66,16 +57,16 @@ function roundRect(doc, x, y, w, h, r, fill) {
 
 function badge(doc, x, y, text, bg, fg, fontSize = 7) {
   doc.setFontSize(fontSize);
-  const tw = doc.getTextWidth(toSerbianLatin(text));
+  const tw = doc.getTextWidth(text);
   const pw = tw + 5;
   const ph = fontSize * 0.60;
   roundRect(doc, x, y - ph + 0.5, pw, ph + 1.5, 1.5, bg);
   doc.setTextColor(...fg);
-  doc.setFont("helvetica", "bold");
-  doc.text(toSerbianLatin(text), x + 2.5, y, { baseline: "bottom" });
+  doc.setFont("NotoSans", "bold");
+  doc.text(text, x + 2.5, y, { baseline: "bottom" });
 }
 
-// ─── Unified Header & Footer ─────────────────────────────────────────────
+// ─── Zajedničko zaglavlje i podnožje ─────────────────────────────────────
 function drawPageHeader(doc, pageW, title, subtitle, dateLabel) {
   doc.setFillColor(...C.primary800);
   doc.rect(0, 0, pageW, 30, "F");
@@ -90,15 +81,15 @@ function drawPageHeader(doc, pageW, title, subtitle, dateLabel) {
 
   doc.setTextColor(...C.white);
   doc.setFontSize(15);
-  doc.setFont("helvetica", "bold");
-  doc.text(toSerbianLatin(title), 14, 14);
+  doc.setFont("NotoSans", "bold");
+  doc.text(title, 14, 14);
   doc.setFontSize(8.5);
-  doc.setFont("helvetica", "normal");
+  doc.setFont("NotoSans", "normal");
   doc.setTextColor(195, 225, 248);
-  doc.text(toSerbianLatin(subtitle), 14, 22);
+  doc.text(subtitle, 14, 22);
   doc.setFontSize(7);
   doc.setTextColor(170, 210, 240);
-  doc.text(toSerbianLatin(dateLabel), pageW - 10, 7, { align: "right" });
+  doc.text(dateLabel, pageW - 10, 7, { align: "right" });
   doc.setTextColor(...C.gray900);
 }
 
@@ -111,10 +102,10 @@ function drawFooters(doc, footerText) {
     doc.setLineWidth(0.25);
     doc.line(14, pageHeight - 10, doc.internal.pageSize.getWidth() - 14, pageHeight - 10);
     doc.setFontSize(6.5);
-    doc.setFont("helvetica", "normal");
+    doc.setFont("NotoSans", "normal");
     doc.setTextColor(...C.gray400);
-    doc.text(toSerbianLatin(footerText), 14, pageHeight - 5);
-    doc.text(`Strana ${i} od ${totalPages}`, doc.internal.pageSize.getWidth() - 14, pageHeight - 5, { align: "right" });
+    doc.text(footerText, 14, pageHeight - 5);
+    doc.text(`Страна ${i} од ${totalPages}`, doc.internal.pageSize.getWidth() - 14, pageHeight - 5, { align: "right" });
   }
 }
 
@@ -122,9 +113,9 @@ function sectionTitle(doc, text, y) {
   doc.setFillColor(...C.primary);
   doc.rect(14, y - 3.8, 2.5, 5.8, "F");
   doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
+  doc.setFont("NotoSans", "bold");
   doc.setTextColor(...C.gray900);
-  doc.text(toSerbianLatin(text), 19, y);
+  doc.text(text, 19, y);
   return y + 5;
 }
 
@@ -137,13 +128,13 @@ function kpiCards(doc, pageW, y, cards) {
     roundRect(doc, cx, y, cardW, cardH, 3, C.white);
     doc.setDrawColor(...C.gray200); doc.setLineWidth(0.3);
     doc.roundedRect(cx, y, cardW, cardH, 3, 3, "S");
-    doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.setTextColor(...c.color);
-    doc.text(toSerbianLatin(c.value), cx + cardW / 2, y + 9.5, { align: "center" });
-    doc.setFontSize(6.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...C.gray500);
-    doc.text(toSerbianLatin(c.label), cx + cardW / 2, y + 14.5, { align: "center" });
+    doc.setFontSize(14); doc.setFont("NotoSans", "bold"); doc.setTextColor(...c.color);
+    doc.text(c.value, cx + cardW / 2, y + 9.5, { align: "center" });
+    doc.setFontSize(6.5); doc.setFont("NotoSans", "normal"); doc.setTextColor(...C.gray500);
+    doc.text(c.label, cx + cardW / 2, y + 14.5, { align: "center" });
     if (c.sub) {
       doc.setFontSize(5.5); doc.setTextColor(...C.gray400);
-      doc.text(toSerbianLatin(c.sub), cx + cardW / 2, y + 18.5, { align: "center" });
+      doc.text(c.sub, cx + cardW / 2, y + 18.5, { align: "center" });
     }
   });
   return y + cardH + 6;
@@ -157,9 +148,9 @@ function progressBar(doc, x, y, w, pct, required) {
   const markerX = x + w * required / 100;
   doc.setDrawColor(...C.amber); doc.setLineWidth(0.5);
   doc.line(markerX, y - 1, markerX, y + h + 1);
-  doc.setFontSize(6.5); doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5); doc.setFont("NotoSans", "normal");
   doc.setTextColor(...C.gray400); doc.text("0%", x, y + h + 4);
-  doc.setTextColor(...C.amber); doc.text(toSerbianLatin(`${required}% (prag)`), markerX, y + h + 4, { align: "center" });
+  doc.setTextColor(...C.amber); doc.text(`${required}% (праг)`, markerX, y + h + 4, { align: "center" });
   doc.setTextColor(...C.gray400); doc.text("100%", x + w, y + h + 4, { align: "right" });
 }
 
@@ -177,7 +168,7 @@ function sessionBars(doc, pageW, y, sessions, total) {
     const bx = startX + i * (barW + 1.5), by = y + maxH - bh;
     const col = p >= 0.7 ? C.emerald : p >= 0.5 ? C.amber : C.primary;
     roundRect(doc, bx, by, barW, bh, 1.5, col);
-    doc.setFontSize(5.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...C.gray500);
+    doc.setFontSize(5.5); doc.setFont("NotoSans", "normal"); doc.setTextColor(...C.gray500);
     doc.text(`T${s.sessionNumber}`, bx + barW / 2, y + maxH + 4.5, { align: "center" });
     if (bh > 6) {
       doc.setFontSize(5); doc.setTextColor(...C.white);
@@ -187,20 +178,23 @@ function sessionBars(doc, pageW, y, sessions, total) {
   return y + maxH + 9;
 }
 
+// Stilovi za tabele
 const tHead = { fillColor: C.gray50, textColor: C.gray500, fontStyle: "bold", fontSize: 7.5, lineColor: C.gray200, lineWidth: 0.3 };
 const tBody = { fontSize: 8, textColor: C.gray700, lineColor: C.gray100, lineWidth: 0.2 };
 const tAlt  = { fillColor: C.gray50 };
 
-// ─── Statistics PDF endpoint ──────────────────────────────────────────────
+// ─── ENDPOINT: Statistike prisustva ──────────────────────────────────────
 app.post("/api/pdf/stats", async (req, res) => {
   try {
     const { stats, matrix, subject } = req.body;
     if (!stats || !subject) {
-      return res.status(400).json({ error: "Missing required fields: stats, subject" });
+      return res.status(400).json({ error: "Nedostaju obavezna polja: stats, subject" });
     }
 
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    addCyrillicFont(doc);
     const pageW = doc.internal.pageSize.getWidth();
+
     const attendanceRequired = 100 - subject.absenceThreshold;
     const enrolledCount = matrix?.enrolledCount ?? stats.totalStudents;
     const avgPct = stats.totalSessions > 0 && stats.perStudent.length > 0
@@ -214,17 +208,17 @@ app.post("/api/pdf/stats", async (req, res) => {
     ).length;
 
     drawPageHeader(doc, pageW,
-      "Statistike prisustva",
-      `${toSerbianLatin(subject.name)} (${subject.code})`,
-      `Generisano: ${formatDate(new Date().toISOString())}`,
+      "Статистике присуства",
+      `${subject.name} (${subject.code})`,
+      `Генерисано: ${formatDate(new Date().toISOString())}`,
     );
 
     let y = 38;
     y = kpiCards(doc, pageW, y, [
-      { label: "Upisanih studenata",              value: String(enrolledCount),               color: C.primary },
-      { label: "Termina odrzano",                 value: String(stats.totalSessions),         color: [14, 165, 233] },
-      { label: "Prosecno prisustvo",              value: `${avgPct}%`,                        color: avgPct >= attendanceRequired ? C.emerald : C.amber },
-      { label: `Ispunili ${attendanceRequired}%`, value: `${passing}/${stats.perStudent.length}`, color: passing === stats.perStudent.length ? C.emerald : C.red },
+      { label: "Уписаних студената",              value: String(enrolledCount),               color: C.primary },
+      { label: "Термина одржано",                 value: String(stats.totalSessions),         color: [14, 165, 233] },
+      { label: "Просечно присуство",              value: `${avgPct}%`,                        color: avgPct >= attendanceRequired ? C.emerald : C.amber },
+      { label: `Испунили ${attendanceRequired}%`, value: `${passing}/${stats.perStudent.length}`, color: passing === stats.perStudent.length ? C.emerald : C.red },
     ]);
 
     y += 1;
@@ -233,10 +227,10 @@ app.post("/api/pdf/stats", async (req, res) => {
     doc.setDrawColor(...C.gray200); doc.setLineWidth(0.3);
     doc.roundedRect(14, y, pageW - 28, 25, 3, 3, "S");
 
-    doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...C.gray900);
-    doc.text(toSerbianLatin("Ukupno prisustvo"), 19, y + 6.5);
+    doc.setFontSize(8.5); doc.setFont("NotoSans", "bold"); doc.setTextColor(...C.gray900);
+    doc.text("Укупно присуство", 19, y + 6.5);
     badge(doc, pageW - 70, y + 5,
-      okReq ? "Prosek ispunjava normu" : `Prosek ispod ${attendanceRequired}%`,
+      okReq ? "Просек испуњава норму" : `Просек испод ${attendanceRequired}%`,
       okReq ? C.emerald50 : C.amber50,
       okReq ? C.emerald : C.amber,
     );
@@ -244,7 +238,7 @@ app.post("/api/pdf/stats", async (req, res) => {
     y += 33;
 
     if (stats.perSession.length > 0) {
-      y = sectionTitle(doc, "Prisustvo po terminu", y) + 2;
+      y = sectionTitle(doc, "Присуство по термину", y) + 2;
       roundRect(doc, 14, y, pageW - 28, 46, 3, C.white);
       doc.setDrawColor(...C.gray200); doc.setLineWidth(0.3);
       doc.roundedRect(14, y, pageW - 28, 46, 3, 3, "S");
@@ -254,23 +248,23 @@ app.post("/api/pdf/stats", async (req, res) => {
     }
 
     if (stats.perStudent.length > 0) {
-      if (y > 200) { doc.addPage(); y = 16; }
-      y = sectionTitle(doc, "Prisustvo po studentu", y) + 2;
+      if (y > 200) { doc.addPage(); y = 16; addCyrillicFont(doc); }
+      y = sectionTitle(doc, "Присуство по студенту", y) + 2;
 
       const bodyRows = stats.perStudent.map((s) => {
         const p = stats.totalSessions > 0 ? Math.round(parseInt(s.count) / stats.totalSessions * 100) : 0;
         return [
-          toSerbianLatin(`${s.lastName} ${s.firstName}`),
+          `${s.lastName} ${s.firstName}`,
           `${s.smer} ${s.indexNumber}/${s.enrollmentYear}`,
           `${s.count}/${stats.totalSessions}`,
           `${p}%`,
-          p >= attendanceRequired ? "Ispunjeno" : "Nije ispunjeno",
+          p >= attendanceRequired ? "Испуњено" : "Није испуњено",
         ];
       });
 
       autoTable(doc, {
         startY: y,
-        head: [[toSerbianLatin("Student"), toSerbianLatin("Indeks"), toSerbianLatin("Prisustvo"), "%", toSerbianLatin("Status")]],
+        head: [["Студент", "Индекс", "Присуство", "%", "Статус"]],
         body: bodyRows,
         headStyles: tHead,
         bodyStyles: tBody,
@@ -284,7 +278,7 @@ app.post("/api/pdf/stats", async (req, res) => {
         },
         didParseCell: (data) => {
           if (data.column.index === 4 && data.section === "body") {
-            const ok = data.cell.text[0]?.startsWith("Ispunjeno");
+            const ok = data.cell.text[0]?.startsWith("Испуњено");
             data.cell.styles.textColor = ok ? C.emerald : C.red;
             data.cell.styles.fillColor = ok ? C.emerald50 : C.red50;
             data.cell.styles.fontStyle = "bold";
@@ -298,61 +292,54 @@ app.post("/api/pdf/stats", async (req, res) => {
       });
     }
 
-    drawFooters(doc, `Evidentiraj · ${toSerbianLatin(subject.name)}`);
-
+    drawFooters(doc, `Evidentiraj · ${subject.name}`);
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
     const filename = `statistike_${subject.code}_${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${toSerbianLatin(filename)}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Length", pdfBuffer.length);
     return res.status(200).send(pdfBuffer);
   } catch (err) {
     console.error("PDF stats generation error:", err);
-    return res.status(500).json({ error: "Failed to generate PDF", details: String(err) });
+    return res.status(500).json({ error: "Neuspešno generisanje PDF-a", details: String(err) });
   }
 });
 
-// ─── Scoresheet PDF endpoint (refactored with unified header/footer) ─────
+// ─── ENDPOINT: Bodovna lista (scoresheet) ────────────────────────────────
 app.post("/api/pdf/scoresheet", async (req, res) => {
   try {
     const { name, academicYear, columns, rows } = req.body;
     if (!name || !columns || !rows) {
-      return res.status(400).json({ error: "Missing fields: name, columns, rows are required" });
+      return res.status(400).json({ error: "Nedostaju obavezna polja: name, columns, rows" });
     }
 
     const visCols = columns.filter(c => !c.isHidden);
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    addCyrillicFont(doc);
     const pageW = doc.internal.pageSize.getWidth();
 
     drawPageHeader(doc, pageW,
-      toSerbianLatin(name),
-      toSerbianLatin(academicYear || ""),
-      `Generisano: ${formatDate(new Date().toISOString())}`
+      name,
+      academicYear || "",
+      `Генерисано: ${formatDate(new Date().toISOString())}`
     );
 
     const head = [
-      [
-        toSerbianLatin("#"),
-        toSerbianLatin("Student"),
-        toSerbianLatin("Indeks"),
-        ...visCols.map(c => toSerbianLatin(c.name + (c.maxPoints ? ` (max ${c.maxPoints})` : "")))
-      ]
+      ["#", "Студент", "Индекс", ...visCols.map(c => c.name + (c.maxPoints ? ` (max ${c.maxPoints})` : ""))]
     ];
-
     const body = rows.map((r, i) => [
       String(i + 1),
-      toSerbianLatin(r.studentName || ""),
-      toSerbianLatin(r.indexNumber || ""),
+      r.studentName || "",
+      r.indexNumber || "",
       ...visCols.map(c => {
         let val = r.computedCells?.[c.id];
-        if (val === undefined || val === null) val = "";
-        return toSerbianLatin(String(val));
+        return (val === undefined || val === null) ? "" : String(val);
       })
     ]);
 
     autoTable(doc, {
       head, body, startY: 38, theme: "grid",
-      styles: { font: "helvetica", fontSize: 8, cellPadding: 2, overflow: "linebreak" },
+      styles: { font: "NotoSans", fontSize: 8, cellPadding: 2, overflow: "linebreak" },
       headStyles: { fillColor: C.primary, textColor: 255, fontSize: 8, fontStyle: "bold", halign: "center" },
       columnStyles: { 0: { halign: "center", cellWidth: 8 }, 1: { cellWidth: 42 }, 2: { cellWidth: 28, halign: "center" } },
       alternateRowStyles: { fillColor: C.primary50 },
@@ -370,30 +357,29 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       margin: { left: 10, right: 10 },
     });
 
-    drawFooters(doc, `Evidence · ${toSerbianLatin(name)}`);
-
+    drawFooters(doc, `Бодовна листа · ${name}`);
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
     let filename = `${name}_${academicYear || ""}.pdf`.replace(/[^a-z0-9_\- ]/gi, "_");
-    filename = toSerbianLatin(filename);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Length", pdfBuffer.length);
     return res.status(200).send(pdfBuffer);
   } catch (err) {
     console.error("PDF scoresheet generation error:", err);
-    return res.status(500).json({ error: "Failed to generate PDF", details: String(err) });
+    return res.status(500).json({ error: "Neuspešno generisanje PDF-a", details: String(err) });
   }
 });
 
-// ─── Attendances PDF endpoint ────────────────────────────────────────────
+// ─── ENDPOINT: Evidencija prisustva (attendances) ────────────────────────
 app.post("/api/pdf/attendances", async (req, res) => {
   try {
     const { attendances, subject } = req.body;
     if (!attendances || !subject) {
-      return res.status(400).json({ error: "Missing required fields: attendances, subject" });
+      return res.status(400).json({ error: "Nedostaju obavezna polja: attendances, subject" });
     }
 
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    addCyrillicFont(doc);
     const pageW = doc.internal.pageSize.getWidth();
 
     const sessionCounts = {};
@@ -406,20 +392,20 @@ app.post("/api/pdf/attendances", async (req, res) => {
 
     drawPageHeader(doc, pageW,
       "Evidentiraj",
-      `${toSerbianLatin(subject.name)} (${subject.code})`,
-      `Generisano: ${formatDate(new Date().toISOString())}  ·  ${attendances.length} zapisa`,
+      `${subject.name} (${subject.code})`,
+      `Генерисано: ${formatDate(new Date().toISOString())}  ·  ${attendances.length} записа`,
     );
 
     let y = 38;
     y = kpiCards(doc, pageW, y, [
-      { label: "Ukupno zapisa",    value: String(attendances.length), color: C.primary },
-      { label: "Razlicitih stud.", value: String(uniqueStudents),     color: [14, 165, 233] },
-      { label: "Termina",          value: String(sessionNums.length), color: C.gray700 },
-      { label: "Prosek / termin",  value: String(avgPerSession),      color: C.emerald },
+      { label: "Укупно записа",    value: String(attendances.length), color: C.primary },
+      { label: "Различитих студ.", value: String(uniqueStudents),     color: [14, 165, 233] },
+      { label: "Термина",          value: String(sessionNums.length), color: C.gray700 },
+      { label: "Просек / термин",  value: String(avgPerSession),      color: C.emerald },
     ]);
 
     if (sessionNums.length > 0) {
-      y = sectionTitle(doc, "Odaziv po terminu", y) + 2;
+      y = sectionTitle(doc, "Одазив по термину", y) + 2;
       roundRect(doc, 14, y, pageW - 28, 46, 3, C.white);
       doc.setDrawColor(...C.gray200); doc.setLineWidth(0.3);
       doc.roundedRect(14, y, pageW - 28, 46, 3, 3, "S");
@@ -431,13 +417,13 @@ app.post("/api/pdf/attendances", async (req, res) => {
       y += 2;
     }
 
-    if (y > 200) { doc.addPage(); y = 16; }
-    y = sectionTitle(doc, "Detaljna evidencija", y) + 2;
+    if (y > 200) { doc.addPage(); y = 16; addCyrillicFont(doc); }
+    y = sectionTitle(doc, "Детаљна евиденција", y) + 2;
 
     const bodyRows = [...attendances]
       .sort((a, b) => a.student.lastName.localeCompare(b.student.lastName))
       .map((a) => [
-        toSerbianLatin(`${a.student.lastName} ${a.student.firstName}`),
+        `${a.student.lastName} ${a.student.firstName}`,
         `${a.student.smer} ${a.student.indexNumber}/${a.student.enrollmentYear}`,
         `T${a.session.sessionNumber}`,
         formatDateTime(a.recordedAt),
@@ -445,7 +431,7 @@ app.post("/api/pdf/attendances", async (req, res) => {
 
     autoTable(doc, {
       startY: y,
-      head: [[toSerbianLatin("Student"), toSerbianLatin("Indeks"), toSerbianLatin("Termin"), toSerbianLatin("Evidentirano")]],
+      head: [["Студент", "Индекс", "Термин", "Евидентирано"]],
       body: bodyRows,
       headStyles: tHead,
       bodyStyles: tBody,
@@ -466,17 +452,16 @@ app.post("/api/pdf/attendances", async (req, res) => {
       margin: { left: 14, right: 14 },
     });
 
-    drawFooters(doc, `Evidentiraj · ${toSerbianLatin(subject.name)}`);
-
+    drawFooters(doc, `Evidentiraj · ${subject.name}`);
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
     const filename = `prisustva_${subject.code}_${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${toSerbianLatin(filename)}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Length", pdfBuffer.length);
     return res.status(200).send(pdfBuffer);
   } catch (err) {
     console.error("PDF attendances generation error:", err);
-    return res.status(500).json({ error: "Failed to generate PDF", details: String(err) });
+    return res.status(500).json({ error: "Neuspešno generisanje PDF-a", details: String(err) });
   }
 });
 

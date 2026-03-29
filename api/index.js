@@ -8,10 +8,18 @@ const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "50mb" }));
 
-// ─── Potpuna konverzija srpske ćirilice u latinicu (bez dijakritika) ────
+// ─── Konverzija ćirilice i latiničnih dijakritika u osnovnu latinicu ────
 function cyrillicToLatin(str) {
   if (!str) return "";
-  const map = {
+  // Prvo prebacujemo latinične dijakritike (č, ć, š, đ, ž)
+  let result = str
+    .replace(/č/g, 'c').replace(/Č/g, 'C')
+    .replace(/ć/g, 'c').replace(/Ć/g, 'C')
+    .replace(/š/g, 's').replace(/Š/g, 'S')
+    .replace(/đ/g, 'dj').replace(/Đ/g, 'Dj')
+    .replace(/ž/g, 'z').replace(/Ž/g, 'Z');
+  // Zatim ćirilična slova
+  const cyrillicMap = {
     'А':'A','а':'a','Б':'B','б':'b','В':'V','в':'v','Г':'G','г':'g','Д':'D','д':'d',
     'Ђ':'Dj','ђ':'dj','Е':'E','е':'e','Ж':'Z','ж':'z','З':'Z','з':'z','И':'I','и':'i',
     'Ј':'J','ј':'j','К':'K','к':'k','Л':'L','л':'l','Љ':'Lj','љ':'lj','М':'M','м':'m',
@@ -19,10 +27,11 @@ function cyrillicToLatin(str) {
     'С':'S','с':'s','Т':'T','т':'t','Ћ':'C','ћ':'c','У':'U','у':'u','Ф':'F','ф':'f',
     'Х':'H','х':'h','Ц':'C','ц':'c','Ч':'C','ч':'c','Џ':'Dz','џ':'dz','Ш':'S','ш':'s'
   };
-  return str.split('').map(ch => map[ch] || ch).join('');
+  result = result.split('').map(ch => cyrillicMap[ch] || ch).join('');
+  return result;
 }
 
-// ─── Pomoćne funkcije za formatiranje datuma (latinica) ──────────────────
+// ─── Pomoćne funkcije za formatiranje datuma ─────────────────────────────
 function formatDate(iso) {
   const d = new Date(iso);
   const day = d.getDate().toString().padStart(2, '0');
@@ -359,11 +368,11 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       })
     ]);
 
-    // --- Izračunavanje širina kolona (prva kolona šira 12mm) ---
+    // Širina kolona – prva kolona 12 mm (za trocifrene brojeve)
     const marginLeft = 10;
     const marginRight = 10;
     const availableWidth = pageW - marginLeft - marginRight;
-    const col0Width = 12;   // dovoljno za trocifrene redne brojeve
+    const col0Width = 12;
     const col1Width = 42;
     const col2Width = 28;
     const fixedTotal = col0Width + col1Width + col2Width;
@@ -381,7 +390,6 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
     for (let i = 0; i < dynamicColCount; i++) {
       columnStyles[3 + i] = { cellWidth: dynamicColWidth, halign: "center" };
     }
-    // ---------------------------------------------------------
 
     autoTable(doc, {
       head, body, startY: 38, theme: "grid",

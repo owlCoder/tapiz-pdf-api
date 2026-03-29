@@ -304,7 +304,7 @@ app.post("/api/pdf/stats", async (req, res) => {
           1: { cellWidth: 34, font: "courier", fontSize: 7 },
           2: { cellWidth: 22, halign: "center" },
           3: { cellWidth: 14, halign: "center", fontStyle: "bold" },
-          4: { cellWidth: 30, halign: "center" },
+          4: { halign: "center" },
         },
         didParseCell: (data) => {
           if (data.section === "body" && data.column.index === 4) {

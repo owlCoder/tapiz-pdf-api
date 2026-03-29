@@ -344,7 +344,7 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
 
     drawPageHeader(doc, pageW,
       cyrillicToLatin(name),
-      cyrillicToLatin(academicYear || ""),
+      "Akademska " + cyrillicToLatin(academicYear || ""),
       `Generisano: ${formatDate(new Date().toISOString())}`
     );
 

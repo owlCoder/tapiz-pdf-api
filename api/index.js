@@ -447,7 +447,7 @@ app.post("/api/pdf/attendances", async (req, res) => {
     const avgPerSession = sessionNums.length > 0 ? Math.round(attendances.length / sessionNums.length) : 0;
 
     drawPageHeader(doc, pageW,
-      "Evidentiraj",
+      "Evidencija prisustva",
       `${cyrillicToLatin(subject.name)} (${subject.code})`,
       `Generisano: ${formatDate(new Date().toISOString())}  ·  ${attendances.length} zapisa`,
     );

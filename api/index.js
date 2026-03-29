@@ -277,8 +277,11 @@ app.post("/api/pdf/stats", async (req, res) => {
 
       const bodyRows = perStudent.map((s) => {
         const count = Number(s.count ?? 0);
+        const absences = totalSessions - count;
+
         const p = totalSessions > 0 ? Math.round((count / totalSessions) * 100) : 0;
-        const status = p >= attendanceRequired ? "Ispunjeno" : "Nije ispunjeno";
+
+        const status = absences <= subject.absenceThreshold ? "Ispunjeno" : "Nije ispunjeno";
 
         return [
           cyrillicToLatin(`${s.lastName || ""} ${s.firstName || ""}`),

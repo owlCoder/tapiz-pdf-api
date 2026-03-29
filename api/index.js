@@ -8,18 +8,21 @@ const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "50mb" }));
 
-// ─── Serbian Latin converter (no external font needed) ──────────────────
-function toLatin(str) {
-  if (str === undefined || str === null) return "";
-  return String(str)
-    .replace(/š/g, "s").replace(/Š/g, "S")
-    .replace(/đ/g, "dj").replace(/Đ/g, "Dj")
-    .replace(/č/g, "c").replace(/Č/g, "C")
-    .replace(/ć/g, "c").replace(/Ć/g, "C")
-    .replace(/ž/g, "z").replace(/Ž/g, "Z");
+// ─── Potpuna konverzija srpske ćirilice u latinicu (bez dijakritika) ────
+function cyrillicToLatin(str) {
+  if (!str) return "";
+  const map = {
+    'А':'A','а':'a','Б':'B','б':'b','В':'V','в':'v','Г':'G','г':'g','Д':'D','д':'d',
+    'Ђ':'Dj','ђ':'dj','Е':'E','е':'e','Ж':'Z','ж':'z','З':'Z','з':'z','И':'I','и':'i',
+    'Ј':'J','ј':'j','К':'K','к':'k','Л':'L','л':'l','Љ':'Lj','љ':'lj','М':'M','м':'m',
+    'Н':'N','н':'n','Њ':'Nj','њ':'nj','О':'O','о':'o','П':'P','п':'p','Р':'R','р':'r',
+    'С':'S','с':'s','Т':'T','т':'t','Ћ':'C','ћ':'c','У':'U','у':'u','Ф':'F','ф':'f',
+    'Х':'H','х':'h','Ц':'C','ц':'c','Ч':'C','ч':'c','Џ':'Dz','џ':'dz','Ш':'S','ш':'s'
+  };
+  return str.split('').map(ch => map[ch] || ch).join('');
 }
 
-// Date formatters (always return Latin characters)
+// ─── Pomoćne funkcije za formatiranje datuma (latinica) ──────────────────
 function formatDate(iso) {
   const d = new Date(iso);
   const day = d.getDate().toString().padStart(2, '0');
@@ -36,7 +39,7 @@ function formatDateTime(iso) {
   return `${dateStr} ${hours}:${minutes}`;
 }
 
-// ─── Design tokens (unchanged) ───────────────────────────────────────────
+// ─── Dizajn (boje, zaobljenja, značke) ───────────────────────────────────
 const C = {
   primary:    [23,  94,  141],
   primary50:  [242, 248, 253],
@@ -65,16 +68,16 @@ function roundRect(doc, x, y, w, h, r, fill) {
 
 function badge(doc, x, y, text, bg, fg, fontSize = 7) {
   doc.setFontSize(fontSize);
-  const tw = doc.getTextWidth(toLatin(text));
+  const tw = doc.getTextWidth(cyrillicToLatin(text));
   const pw = tw + 5;
   const ph = fontSize * 0.60;
   roundRect(doc, x, y - ph + 0.5, pw, ph + 1.5, 1.5, bg);
   doc.setTextColor(...fg);
   doc.setFont("helvetica", "bold");
-  doc.text(toLatin(text), x + 2.5, y, { baseline: "bottom" });
+  doc.text(cyrillicToLatin(text), x + 2.5, y, { baseline: "bottom" });
 }
 
-// ─── Unified Header & Footer (all text converted to Latin) ──────────────
+// ─── Zajedničko zaglavlje i podnožje ─────────────────────────────────────
 function drawPageHeader(doc, pageW, title, subtitle, dateLabel) {
   doc.setFillColor(...C.primary800);
   doc.rect(0, 0, pageW, 30, "F");
@@ -90,14 +93,14 @@ function drawPageHeader(doc, pageW, title, subtitle, dateLabel) {
   doc.setTextColor(...C.white);
   doc.setFontSize(15);
   doc.setFont("helvetica", "bold");
-  doc.text(toLatin(title), 14, 14);
+  doc.text(cyrillicToLatin(title), 14, 14);
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(195, 225, 248);
-  doc.text(toLatin(subtitle), 14, 22);
+  doc.text(cyrillicToLatin(subtitle), 14, 22);
   doc.setFontSize(7);
   doc.setTextColor(170, 210, 240);
-  doc.text(toLatin(dateLabel), pageW - 10, 7, { align: "right" });
+  doc.text(cyrillicToLatin(dateLabel), pageW - 10, 7, { align: "right" });
   doc.setTextColor(...C.gray900);
 }
 
@@ -112,7 +115,7 @@ function drawFooters(doc, footerText) {
     doc.setFontSize(6.5);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...C.gray400);
-    doc.text(toLatin(footerText), 14, pageHeight - 5);
+    doc.text(cyrillicToLatin(footerText), 14, pageHeight - 5);
     doc.text(`Strana ${i} od ${totalPages}`, doc.internal.pageSize.getWidth() - 14, pageHeight - 5, { align: "right" });
   }
 }
@@ -123,7 +126,7 @@ function sectionTitle(doc, text, y) {
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...C.gray900);
-  doc.text(toLatin(text), 19, y);
+  doc.text(cyrillicToLatin(text), 19, y);
   return y + 5;
 }
 
@@ -137,12 +140,12 @@ function kpiCards(doc, pageW, y, cards) {
     doc.setDrawColor(...C.gray200); doc.setLineWidth(0.3);
     doc.roundedRect(cx, y, cardW, cardH, 3, 3, "S");
     doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.setTextColor(...c.color);
-    doc.text(toLatin(c.value), cx + cardW / 2, y + 9.5, { align: "center" });
+    doc.text(cyrillicToLatin(c.value), cx + cardW / 2, y + 9.5, { align: "center" });
     doc.setFontSize(6.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...C.gray500);
-    doc.text(toLatin(c.label), cx + cardW / 2, y + 14.5, { align: "center" });
+    doc.text(cyrillicToLatin(c.label), cx + cardW / 2, y + 14.5, { align: "center" });
     if (c.sub) {
       doc.setFontSize(5.5); doc.setTextColor(...C.gray400);
-      doc.text(toLatin(c.sub), cx + cardW / 2, y + 18.5, { align: "center" });
+      doc.text(cyrillicToLatin(c.sub), cx + cardW / 2, y + 18.5, { align: "center" });
     }
   });
   return y + cardH + 6;
@@ -158,7 +161,7 @@ function progressBar(doc, x, y, w, pct, required) {
   doc.line(markerX, y - 1, markerX, y + h + 1);
   doc.setFontSize(6.5); doc.setFont("helvetica", "normal");
   doc.setTextColor(...C.gray400); doc.text("0%", x, y + h + 4);
-  doc.setTextColor(...C.amber); doc.text(toLatin(`${required}% (prag)`), markerX, y + h + 4, { align: "center" });
+  doc.setTextColor(...C.amber); doc.text(cyrillicToLatin(`${required}% (prag)`), markerX, y + h + 4, { align: "center" });
   doc.setTextColor(...C.gray400); doc.text("100%", x + w, y + h + 4, { align: "right" });
 }
 
@@ -186,11 +189,12 @@ function sessionBars(doc, pageW, y, sessions, total) {
   return y + maxH + 9;
 }
 
+// ─── Stilovi tabela (ujednačeni) ─────────────────────────────────────────
 const tHead = { fillColor: C.gray50, textColor: C.gray500, fontStyle: "bold", fontSize: 7.5, lineColor: C.gray200, lineWidth: 0.3 };
 const tBody = { fontSize: 8, textColor: C.gray700, lineColor: C.gray100, lineWidth: 0.2 };
 const tAlt  = { fillColor: C.gray50 };
 
-// ─── Statistics PDF endpoint ──────────────────────────────────────────────
+// ─── ENDPOINT: Statistike prisustva ──────────────────────────────────────
 app.post("/api/pdf/stats", async (req, res) => {
   try {
     const { stats, matrix, subject } = req.body;
@@ -198,7 +202,6 @@ app.post("/api/pdf/stats", async (req, res) => {
       return res.status(400).json({ error: "Nedostaju obavezna polja: stats, subject" });
     }
 
-    // Provide default empty arrays to avoid undefined errors
     const perStudent = Array.isArray(stats.perStudent) ? stats.perStudent : [];
     const perSession = Array.isArray(stats.perSession) ? stats.perSession : [];
     const totalSessions = stats.totalSessions || 0;
@@ -221,7 +224,7 @@ app.post("/api/pdf/stats", async (req, res) => {
 
     drawPageHeader(doc, pageW,
       "Statistike prisustva",
-      `${toLatin(subject.name)} (${subject.code})`,
+      `${cyrillicToLatin(subject.name)} (${subject.code})`,
       `Generisano: ${formatDate(new Date().toISOString())}`,
     );
 
@@ -240,7 +243,7 @@ app.post("/api/pdf/stats", async (req, res) => {
     doc.roundedRect(14, y, pageW - 28, 25, 3, 3, "S");
 
     doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...C.gray900);
-    doc.text(toLatin("Ukupno prisustvo"), 19, y + 6.5);
+    doc.text(cyrillicToLatin("Ukupno prisustvo"), 19, y + 6.5);
     badge(doc, pageW - 70, y + 5,
       okReq ? "Prosek ispunjava normu" : `Prosek ispod ${attendanceRequired}%`,
       okReq ? C.emerald50 : C.amber50,
@@ -266,7 +269,7 @@ app.post("/api/pdf/stats", async (req, res) => {
       const bodyRows = perStudent.map((s) => {
         const p = totalSessions > 0 ? Math.round(parseInt(s.count || 0) / totalSessions * 100) : 0;
         return [
-          toLatin(`${s.lastName || ""} ${s.firstName || ""}`),
+          cyrillicToLatin(`${s.lastName || ""} ${s.firstName || ""}`),
           `${s.smer || ""} ${s.indexNumber || ""}/${s.enrollmentYear || ""}`,
           `${s.count || 0}/${totalSessions}`,
           `${p}%`,
@@ -276,7 +279,7 @@ app.post("/api/pdf/stats", async (req, res) => {
 
       autoTable(doc, {
         startY: y,
-        head: [[toLatin("Student"), toLatin("Indeks"), toLatin("Prisustvo"), "%", toLatin("Status")]],
+        head: [[cyrillicToLatin("Student"), cyrillicToLatin("Indeks"), cyrillicToLatin("Prisustvo"), "%", cyrillicToLatin("Status")]],
         body: bodyRows,
         headStyles: tHead,
         bodyStyles: tBody,
@@ -304,12 +307,12 @@ app.post("/api/pdf/stats", async (req, res) => {
       });
     }
 
-    drawFooters(doc, `Evidentiraj · ${toLatin(subject.name)}`);
+    drawFooters(doc, `Evidentiraj · ${cyrillicToLatin(subject.name)}`);
 
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
     const filename = `statistike_${subject.code}_${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${toLatin(filename)}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${cyrillicToLatin(filename)}"`);
     res.setHeader("Content-Length", pdfBuffer.length);
     return res.status(200).send(pdfBuffer);
   } catch (err) {
@@ -318,7 +321,7 @@ app.post("/api/pdf/stats", async (req, res) => {
   }
 });
 
-// ─── Scoresheet PDF endpoint (unified) ───────────────────────────────────
+// ─── ENDPOINT: Bodovna lista (scoresheet) ────────────────────────────────
 app.post("/api/pdf/scoresheet", async (req, res) => {
   try {
     const { name, academicYear, columns, rows } = req.body;
@@ -331,37 +334,62 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
     const pageW = doc.internal.pageSize.getWidth();
 
     drawPageHeader(doc, pageW,
-      toLatin(name),
-      toLatin(academicYear || ""),
+      cyrillicToLatin(name),
+      cyrillicToLatin(academicYear || ""),
       `Generisano: ${formatDate(new Date().toISOString())}`
     );
 
     const head = [
       [
-        toLatin("#"),
-        toLatin("Student"),
-        toLatin("Indeks"),
-        ...visCols.map(c => toLatin(c.name + (c.maxPoints ? ` (max ${c.maxPoints})` : "")))
+        cyrillicToLatin("#"),
+        cyrillicToLatin("Student"),
+        cyrillicToLatin("Indeks"),
+        ...visCols.map(c => cyrillicToLatin(c.name + (c.maxPoints ? ` (max ${c.maxPoints})` : "")))
       ]
     ];
 
     const body = rows.map((r, i) => [
       String(i + 1),
-      toLatin(r.studentName || ""),
-      toLatin(r.indexNumber || ""),
+      cyrillicToLatin(r.studentName || ""),
+      cyrillicToLatin(r.indexNumber || ""),
       ...visCols.map(c => {
         let val = r.computedCells?.[c.id];
         if (val === undefined || val === null) val = "";
-        return toLatin(String(val));
+        return cyrillicToLatin(String(val));
       })
     ]);
+
+    // --- Izračunavanje širina kolona (prva kolona šira 12mm) ---
+    const marginLeft = 10;
+    const marginRight = 10;
+    const availableWidth = pageW - marginLeft - marginRight;
+    const col0Width = 12;   // dovoljno za trocifrene redne brojeve
+    const col1Width = 42;
+    const col2Width = 28;
+    const fixedTotal = col0Width + col1Width + col2Width;
+    const remainingWidth = availableWidth - fixedTotal;
+    const dynamicColCount = visCols.length;
+    const dynamicColWidth = dynamicColCount > 0 
+      ? Math.max(20, remainingWidth / dynamicColCount) 
+      : 0;
+
+    const columnStyles = {
+      0: { cellWidth: col0Width, halign: "center" },
+      1: { cellWidth: col1Width },
+      2: { cellWidth: col2Width, halign: "center" },
+    };
+    for (let i = 0; i < dynamicColCount; i++) {
+      columnStyles[3 + i] = { cellWidth: dynamicColWidth, halign: "center" };
+    }
+    // ---------------------------------------------------------
 
     autoTable(doc, {
       head, body, startY: 38, theme: "grid",
       styles: { font: "helvetica", fontSize: 8, cellPadding: 2, overflow: "linebreak" },
-      headStyles: { fillColor: C.primary, textColor: 255, fontSize: 8, fontStyle: "bold", halign: "center" },
-      columnStyles: { 0: { halign: "center", cellWidth: 8 }, 1: { cellWidth: 42 }, 2: { cellWidth: 28, halign: "center" } },
-      alternateRowStyles: { fillColor: C.primary50 },
+      headStyles: tHead,
+      bodyStyles: tBody,
+      alternateRowStyles: tAlt,
+      columnStyles: columnStyles,
       didParseCell: (data) => {
         if (data.section === "body" && data.column.index > 2) {
           const col = visCols[data.column.index - 3];
@@ -370,17 +398,16 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
             data.cell.styles.textColor = C.primary;
             data.cell.styles.fillColor = C.primary100;
           }
-          data.cell.styles.halign = "center";
         }
       },
-      margin: { left: 10, right: 10 },
+      margin: { left: marginLeft, right: marginRight },
     });
 
-    drawFooters(doc, `Bodovna lista · ${toLatin(name)}`);
+    drawFooters(doc, `Bodovna lista · ${cyrillicToLatin(name)}`);
 
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
     let filename = `${name}_${academicYear || ""}.pdf`.replace(/[^a-z0-9_\- ]/gi, "_");
-    filename = toLatin(filename);
+    filename = cyrillicToLatin(filename);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Length", pdfBuffer.length);
@@ -391,7 +418,7 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
   }
 });
 
-// ─── Attendances PDF endpoint (unified) ──────────────────────────────────
+// ─── ENDPOINT: Evidencija prisustva (attendances) ────────────────────────
 app.post("/api/pdf/attendances", async (req, res) => {
   try {
     const { attendances, subject } = req.body;
@@ -413,7 +440,7 @@ app.post("/api/pdf/attendances", async (req, res) => {
 
     drawPageHeader(doc, pageW,
       "Evidentiraj",
-      `${toLatin(subject.name)} (${subject.code})`,
+      `${cyrillicToLatin(subject.name)} (${subject.code})`,
       `Generisano: ${formatDate(new Date().toISOString())}  ·  ${attendances.length} zapisa`,
     );
 
@@ -444,7 +471,7 @@ app.post("/api/pdf/attendances", async (req, res) => {
     const bodyRows = [...attendances]
       .sort((a, b) => (a.student?.lastName || "").localeCompare(b.student?.lastName || ""))
       .map((a) => [
-        toLatin(`${a.student?.lastName || ""} ${a.student?.firstName || ""}`),
+        cyrillicToLatin(`${a.student?.lastName || ""} ${a.student?.firstName || ""}`),
         `${a.student?.smer || ""} ${a.student?.indexNumber || ""}/${a.student?.enrollmentYear || ""}`,
         `T${a.session?.sessionNumber || "?"}`,
         formatDateTime(a.recordedAt),
@@ -452,7 +479,7 @@ app.post("/api/pdf/attendances", async (req, res) => {
 
     autoTable(doc, {
       startY: y,
-      head: [[toLatin("Student"), toLatin("Indeks"), toLatin("Termin"), toLatin("Evidentirano")]],
+      head: [[cyrillicToLatin("Student"), cyrillicToLatin("Indeks"), cyrillicToLatin("Termin"), cyrillicToLatin("Evidentirano")]],
       body: bodyRows,
       headStyles: tHead,
       bodyStyles: tBody,
@@ -473,12 +500,12 @@ app.post("/api/pdf/attendances", async (req, res) => {
       margin: { left: 14, right: 14 },
     });
 
-    drawFooters(doc, `Evidentiraj · ${toLatin(subject.name)}`);
+    drawFooters(doc, `Evidentiraj · ${cyrillicToLatin(subject.name)}`);
 
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
     const filename = `prisustva_${subject.code}_${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${toLatin(filename)}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${cyrillicToLatin(filename)}"`);
     res.setHeader("Content-Length", pdfBuffer.length);
     return res.status(200).send(pdfBuffer);
   } catch (err) {
@@ -490,7 +517,7 @@ app.post("/api/pdf/attendances", async (req, res) => {
 // Health check
 app.get("/api/pdf/health", (_req, res) => res.json({ ok: true }));
 
-// ─── Local server (for testing only) ─────────────────────────────────────
+// ─── Lokalni server (samo za testiranje) ────────────────────────────────
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {

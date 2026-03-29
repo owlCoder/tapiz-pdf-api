@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "vercel dev",
-    "start": "node index.js"
+    "start": "node index.js",
+    "local": "node api/index.js"
   },
   "dependencies": {
     "express": "^5.2.1",

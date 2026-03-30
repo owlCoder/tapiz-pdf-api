@@ -541,16 +541,79 @@ app.post("/api/pdf/attendances", async (req, res) => {
   }
 });
 
-// Health check
-app.get("/api/pdf/health", (_req, res) => res.json({ ok: true }));
+// ─── ENDPOINT: Izvoz odgovora forme u PDF ─────────────────────────────────
+app.post("/api/pdf/forms", async (req, res) => {
+  try {
+    const { formTitle, questions, responses } = req.body;
+    if (!questions || !responses) {
+      return res.status(400).json({ error: "questions and responses are required" });
+    }
 
-// ─── Lokalni server (samo za testiranje) ────────────────────────────────
-if (require.main === module) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
-    console.log(`   Test health: http://localhost:${PORT}/api/pdf/health`);
-  });
-}
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+
+    // Zaglavlje
+    drawPageHeader(doc, pageW,
+      cyrillicToLatin(formTitle || "Odgovori"),
+      `Ukupno odgovora: ${responses.length} | ${responses.length > 0 ? `Poslednji: ${formatDateTime(responses[responses.length-1].submittedAt)}` : "Nema odgovora"}`,
+      `Generisano: ${formatDate(new Date().toISOString())}`
+    );
+
+    let y = 38;
+
+    // Tabela sa odgovorima
+    const head = [
+      [
+        cyrillicToLatin("#"),
+        cyrillicToLatin("Datum"),
+        ...questions.map(q => cyrillicToLatin(q.label))
+      ]
+    ];
+
+    const body = responses.map((r, idx) => [
+      String(idx + 1),
+      formatDateTime(r.submittedAt),
+      ...questions.map(q => {
+        let val = r.answers[q.id];
+        if (Array.isArray(val)) val = val.filter(Boolean).join(", ");
+        return cyrillicToLatin(val != null ? String(val) : "");
+      })
+    ]);
+
+    // Širine kolona: prva 8mm, druga 28mm, ostale jednake
+    const colWidths = [8, 28];
+    const remaining = pageW - 28 - 14 - 14; // 14 margina sa svake strane
+    const perQuestion = remaining / questions.length;
+    for (let i = 0; i < questions.length; i++) {
+      colWidths.push(perQuestion);
+    }
+
+    autoTable(doc, {
+      startY: y,
+      head,
+      body,
+      theme: "grid",
+      styles: { font: "helvetica", fontSize: 8, cellPadding: 2, overflow: "linebreak" },
+      headStyles: tHead,
+      bodyStyles: tBody,
+      alternateRowStyles: tAlt,
+      columnStyles: colWidths.reduce((acc, w, idx) => { acc[idx] = { cellWidth: w }; return acc; }, {}),
+      margin: { left: 14, right: 14 },
+    });
+
+    // Podnožje
+    drawFooters(doc, `Evidentiraj · ${cyrillicToLatin(formTitle)}`);
+
+    const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
+    const filename = `${formTitle || "odgovori"}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${cyrillicToLatin(filename)}"`);
+    res.setHeader("Content-Length", pdfBuffer.length);
+    return res.status(200).send(pdfBuffer);
+  } catch (err) {
+    console.error("PDF forms export error:", err);
+    return res.status(500).json({ error: "Neuspesno generisanje PDF-a", details: String(err) });
+  }
+});
 
 module.exports = app;

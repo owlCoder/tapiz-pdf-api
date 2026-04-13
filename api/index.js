@@ -64,31 +64,33 @@ const C = {
   white: [255, 255, 255],
 };
 
-// ─── NOVI, KOMPAKTNI HEADER (za sve strane) ──────────────────────────────
-function drawPageHeaderCompact(doc, pageW, title, subtitle, dateLabel) {
-  const headerH = 22; // smanjeno sa 28 na 22 mm
-  doc.setFillColor(...C.primary);
+function drawPageHeaderMinimal(doc, pageW, title, subtitle, dateLabel) {
+  const headerH = 18; // još niži, 18 mm
+  // Pozadina – samo tanka linija, bez teškog preljeva
+  doc.setFillColor(...C.white);
   doc.rect(0, 0, pageW, headerH, "F");
-  doc.setFillColor(...C.primary800);
-  doc.rect(0, 0, pageW * 0.55, headerH, "F");
-
-  doc.setTextColor(255, 255, 255);
+  
+  // Linija ispod headera (primarna boja)
+  doc.setDrawColor(...C.primary);
+  doc.setLineWidth(0.5);
+  doc.line(10, headerH, pageW - 10, headerH);
+  
+  // Naslov – lijevo
+  doc.setTextColor(...C.primary);
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text(cyrillicToLatin(title), 12, 11);
-  doc.setFontSize(7.5);
+  doc.text(cyrillicToLatin(title), 12, 10);
+  
+  // Podnaslov – odmah ispod naslova (manji font)
+  doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(220, 240, 255);
-  doc.text(cyrillicToLatin(subtitle), 12, 18);
-
+  doc.setTextColor(...C.gray500);
+  doc.text(cyrillicToLatin(subtitle), 12, 16);
+  
+  // Datum – desno, vertikalno centriran
   doc.setFontSize(6.5);
-  doc.setTextColor(200, 220, 240);
+  doc.setTextColor(...C.gray400);
   doc.text(cyrillicToLatin(dateLabel), pageW - 12, 8, { align: "right" });
-
-  // suptilna linija ispod headera
-  doc.setDrawColor(...C.primary);
-  doc.setLineWidth(0.4);
-  doc.line(10, headerH, pageW - 10, headerH);
 }
 
 // ─── Ostale pomoćne funkcije (roundRect, badge, kpiCards, progressBar, sessionBars) ───
@@ -413,7 +415,7 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
 
     // ---- Statistike (dodatna strana) ----
     doc.addPage();
-    drawPageHeaderCompact(doc, pageW, `Statistike — ${cyrillicToLatin(name)}`, `Detaljni proračuni`, `Generisano: ${formatDate(new Date().toISOString())}`);
+    drawPageHeaderCompact(doc, pageW, `Statistike — ${cyrillicToLatin(name)}`, `Detaljni proracuni`, `Generisano: ${formatDate(new Date().toISOString())}`);
     let y = 34;
     const gradedCols = visibleCols.filter(c => c.maxPoints);
     const totalMax = gradedCols.reduce((s, c) => s + (c.maxPoints || 0), 0);
@@ -431,8 +433,8 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
     const avgPctOverall = studentSummaries.filter(s => s.pct !== null).length ? studentSummaries.reduce((a, s) => a + (s.pct || 0), 0) / studentSummaries.filter(s => s.pct !== null).length : 0;
     y = kpiCards(doc, pageW, y, [
       { label: "Ukupno studenata", value: String(rows.length), color: C.primary },
-      { label: "Prosečan uspeh", value: `${Math.round(avgPctOverall)}%`, color: avgPctOverall >= 60 ? C.emerald : C.amber },
-      { label: "Položilo (≥60%)", value: `${passedCount}/${rows.length}`, color: passedCount === rows.length ? C.emerald : C.red },
+      { label: "Prosek uspeha", value: `${Math.round(avgPctOverall)}%`, color: avgPctOverall >= 60 ? C.emerald : C.amber },
+      { label: "Ima uslov (≥60%)", value: `${passedCount}/${rows.length}`, color: passedCount === rows.length ? C.emerald : C.red },
       { label: "Maks. bodova", value: String(totalMax), color: C.gray700 }
     ]);
     y += 5;
@@ -443,15 +445,18 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       doc.text(cyrillicToLatin(`${col.name}${maxP}`), 12, y);
       y += 4;
       const rowsStats = [
-        [cyrillicToLatin("Broj studenata sa poenima:"), s.count],
-        [cyrillicToLatin("Ukupno poena:"), s.sum !== null ? s.sum.toFixed(2) : "-"],
-        [cyrillicToLatin("Prosečno poena:"), s.average !== null ? s.average.toFixed(2) : "-"],
-        [cyrillicToLatin("Medijana:"), s.median !== null ? s.median.toFixed(2) : "-"],
-        [cyrillicToLatin("Standardna devijacija:"), s.stdDev !== null ? s.stdDev.toFixed(2) : "-"],
-        [cyrillicToLatin("Min / Max:"), s.min !== null ? `${s.min.toFixed(2)} / ${s.max.toFixed(2)}` : "-"]
-      ];
+  [cyrillicToLatin("Broj studenata sa poenima:"), s.count],
+  [cyrillicToLatin("Ukupno poena:"), s.sum !== null ? s.sum.toFixed(2) : "-"],
+  [cyrillicToLatin("Prosek poena:"), s.average !== null ? s.average.toFixed(2) : "-"],
+  [cyrillicToLatin("Medijana:"), s.median !== null ? s.median.toFixed(2) : "-"],
+  [cyrillicToLatin("Standardna devijacija:"), s.stdDev !== null ? s.stdDev.toFixed(2) : "-"],
+  [cyrillicToLatin("Min / Max:"), s.min !== null ? `${s.min.toFixed(2)} / ${s.max.toFixed(2)}` : "-"]
+];
+if (col.maxPoints && s.average !== null) {
+  rowsStats.push([cyrillicToLatin("Prosecan procenat:"), `${((s.average / col.maxPoints) * 100).toFixed(2)}%`]);
+}
       if (col.maxPoints && s.average !== null) {
-        rowsStats.push([cyrillicToLatin("Prosečan procenat:"), `${((s.average / col.maxPoints) * 100).toFixed(2)}%`]);
+        rowsStats.push([cyrillicToLatin("Prosecan procenat:"), `${((s.average / col.maxPoints) * 100).toFixed(2)}%`]);
       }
       if (col.maxPoints && s.average !== null) rowsStats.push(["Prosečan procenat:", `${((s.average / col.maxPoints) * 100).toFixed(2)}%`]);
       autoTable(doc, {

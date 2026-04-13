@@ -493,6 +493,9 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       return cardHeight;
     }
 
+    if (visibleCols.length > 9)
+      visibleCols.length = 9;
+
     // Iteracija kroz kolone u redovima po 3
     for (let i = 0; i < visibleCols.length; i += 3) {
       const colsInRow = visibleCols.slice(i, i + 3);

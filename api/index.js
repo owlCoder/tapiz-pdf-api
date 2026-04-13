@@ -12,27 +12,29 @@ app.use(express.json({ limit: "50mb" }));
 // ─── Konverzija ćirilice i latiničnih dijakritika u osnovnu latinicu ────
 function cyrillicToLatin(str) {
   if (!str) return "";
+  // Prvo latinične dijakritike
   let result = str
     .replace(/č/g, 'c').replace(/Č/g, 'C')
     .replace(/ć/g, 'c').replace(/Ć/g, 'C')
     .replace(/š/g, 's').replace(/Š/g, 'S')
     .replace(/đ/g, 'dj').replace(/Đ/g, 'Dj')
     .replace(/ž/g, 'z').replace(/Ž/g, 'Z');
-  const cyrillicMap = {
-    'А':'A','а':'a','Б':'B','б':'b','В':'V','в':'v','Г':'G','г':'g','Д':'D','д':'d',
-    'Ђ':'Dj','ђ':'dj','Е':'E','е':'e','Ж':'Z','ж':'z','З':'Z','з':'z','И':'I','и':'i',
-    'Ј':'J','ј':'j','К':'K','к':'k','Л':'L','л':'l','Љ':'Lj','љ':'lj','М':'M','м':'m',
-    'Н':'N','н':'n','Њ':'Nj','њ':'nj','О':'O','о':'o','П':'P','п':'p','Р':'R','р':'r',
-    'С':'S','с':'s','Т':'T','т':'t','Ћ':'C','ћ':'c','У':'U','у':'u','Ф':'F','ф':'f',
-    'Х':'H','х':'h','Ц':'C','ц':'c','Ч':'C','ч':'c','Џ':'Dz','џ':'dz','Ш':'S','ш':'s'
+  // Zatim ćirilica
+  const map = {
+    'А': 'A', 'а': 'a', 'Б': 'B', 'б': 'b', 'В': 'V', 'в': 'v', 'Г': 'G', 'г': 'g', 'Д': 'D', 'д': 'd',
+    'Ђ': 'Dj', 'ђ': 'dj', 'Е': 'E', 'е': 'e', 'Ж': 'Z', 'ж': 'z', 'З': 'Z', 'з': 'z', 'И': 'I', 'и': 'i',
+    'Ј': 'J', 'ј': 'j', 'К': 'K', 'к': 'k', 'Л': 'L', 'л': 'l', 'Љ': 'Lj', 'љ': 'lj', 'М': 'M', 'м': 'm',
+    'Н': 'N', 'н': 'n', 'Њ': 'Nj', 'њ': 'nj', 'О': 'O', 'о': 'o', 'П': 'P', 'п': 'p', 'Р': 'R', 'р': 'r',
+    'С': 'S', 'с': 's', 'Т': 'T', 'т': 't', 'Ћ': 'C', 'ћ': 'c', 'У': 'U', 'у': 'u', 'Ф': 'F', 'ф': 'f',
+    'Х': 'H', 'х': 'h', 'Ц': 'C', 'ц': 'c', 'Ч': 'C', 'ч': 'c', 'Џ': 'Dz', 'џ': 'dz', 'Ш': 'S', 'ш': 's'
   };
-  result = result.split('').map(ch => cyrillicMap[ch] || ch).join('');
+  result = result.split('').map(ch => map[ch] || ch).join('');
   return result;
 }
 
 function formatDate(iso) {
   const d = new Date(iso);
-  return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth()+1).toString().padStart(2, '0')}.${d.getFullYear()}.`;
+  return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()}.`;
 }
 
 function formatDateTime(iso) {
@@ -42,24 +44,24 @@ function formatDateTime(iso) {
 
 // ─── Boje (usklađene sa Excel verzijom) ──────────────────────────────────
 const C = {
-  primary:    [23,  94,  141],  // #175E8D
-  primary50:  [242, 248, 253],
+  primary: [23, 94, 141],  // #175E8D
+  primary50: [242, 248, 253],
   primary100: [228, 240, 250],
-  primary800: [23,  80,  117],
-  emerald:    [22, 163,  74],
-  emerald50:  [240, 253, 244],
-  amber:      [217, 119,   6],
-  amber50:    [255, 251, 235],
-  red:        [220,  38,  38],
-  red50:      [254, 242, 242],
-  gray50:     [249, 250, 251],
-  gray100:    [243, 244, 246],
-  gray200:    [229, 231, 235],
-  gray400:    [156, 163, 175],
-  gray500:    [107, 114, 128],
-  gray700:    [55,   65,  81],
-  gray900:    [17,   24,  39],
-  white:      [255, 255, 255],
+  primary800: [23, 80, 117],
+  emerald: [22, 163, 74],
+  emerald50: [240, 253, 244],
+  amber: [217, 119, 6],
+  amber50: [255, 251, 235],
+  red: [220, 38, 38],
+  red50: [254, 242, 242],
+  gray50: [249, 250, 251],
+  gray100: [243, 244, 246],
+  gray200: [229, 231, 235],
+  gray400: [156, 163, 175],
+  gray500: [107, 114, 128],
+  gray700: [55, 65, 81],
+  gray900: [17, 24, 39],
+  white: [255, 255, 255],
 };
 
 // ─── NOVI, KOMPAKTNI HEADER (za sve strane) ──────────────────────────────
@@ -167,7 +169,7 @@ function sessionBars(doc, pageW, y, sessions, total) {
 
 const tHead = { fillColor: C.gray50, textColor: C.gray500, fontStyle: "bold", fontSize: 7.5, lineColor: C.gray200, lineWidth: 0.3 };
 const tBody = { fontSize: 8, textColor: C.gray700, lineColor: C.gray100, lineWidth: 0.2 };
-const tAlt  = { fillColor: C.gray50 };
+const tAlt = { fillColor: C.gray50 };
 
 function drawFooters(doc, footerText) {
   const totalPages = doc.internal.getNumberOfPages();
@@ -305,17 +307,17 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
           }
         });
         if (values.length > 0) {
-          const sum = values.reduce((a,b) => a+b,0);
-          const avg = sum/values.length;
+          const sum = values.reduce((a, b) => a + b, 0);
+          const avg = sum / values.length;
           stats[col.id] = { count: values.length, sum, average: avg, min: Math.min(...values), max: Math.max(...values), median: calculateMedian(values), stdDev: calculateStandardDeviation(values, avg), maxPoints: col.maxPoints || null };
         } else {
-          stats[col.id] = { count:0, sum:null, average:null, min:null, max:null, median:null, stdDev:null, maxPoints:col.maxPoints||null };
+          stats[col.id] = { count: 0, sum: null, average: null, min: null, max: null, median: null, stdDev: null, maxPoints: col.maxPoints || null };
         }
       });
       return stats;
     };
-    const calculateMedian = (arr) => { const s=[...arr].sort((a,b)=>a-b), m=Math.floor(s.length/2); return s.length%2===0?(s[m-1]+s[m])/2:s[m]; };
-    const calculateStandardDeviation = (vals, mean) => Math.sqrt(vals.map(v=>Math.pow(v-mean,2)).reduce((a,b)=>a+b,0)/vals.length);
+    const calculateMedian = (arr) => { const s = [...arr].sort((a, b) => a - b), m = Math.floor(s.length / 2); return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m]; };
+    const calculateStandardDeviation = (vals, mean) => Math.sqrt(vals.map(v => Math.pow(v - mean, 2)).reduce((a, b) => a + b, 0) / vals.length);
     const statistics = calculateStatistics(rows, visibleCols);
 
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
@@ -333,7 +335,7 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
 
     // Podaci
     const dataRows = rows.map((row, idx) => [
-      String(idx+1),
+      String(idx + 1),
       cyrillicToLatin(row.studentName || ""),
       cyrillicToLatin(row.indexNumber || ""),
       ...visibleCols.map(c => {
@@ -347,8 +349,8 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
     // Širine kolona
     const marginLeft = 10, marginRight = 10;
     const availableWidth = pageW - marginLeft - marginRight;
-    const col0w=10, col1w=44, col2w=28;
-    const fixedTotal = col0w+col1w+col2w;
+    const col0w = 10, col1w = 44, col2w = 28;
+    const fixedTotal = col0w + col1w + col2w;
     const remaining = availableWidth - fixedTotal;
     const dynCols = visibleCols.length;
     const dynWidth = dynCols > 0 ? Math.max(18, remaining / dynCols) : 0;
@@ -357,7 +359,7 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       1: { cellWidth: col1w },
       2: { cellWidth: col2w, halign: "center" }
     };
-    for (let i=0; i<dynCols; i++) colStyles[3+i] = { cellWidth: dynWidth, halign: "center" };
+    for (let i = 0; i < dynCols; i++) colStyles[3 + i] = { cellWidth: dynWidth, halign: "center" };
 
     // Prva strana: crtamo tabelu sa dodatnim redovima (min, max, prosek) kao dio body-ja
     // Da bismo ih prikazali odmah ispod zaglavlja, dodajemo ih na početak body-ja i postavljamo posebne stilove.
@@ -383,7 +385,7 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
         if (data.section === "body" && data.row.index >= 3) { // podaci studenata
           const colIdx = data.column.index;
           if (colIdx > 2) {
-            const col = visibleCols[colIdx-3];
+            const col = visibleCols[colIdx - 3];
             const cellVal = data.cell.text[0];
             const num = parseFloat(cellVal);
             if (!isNaN(num) && col?.maxPoints) {
@@ -414,23 +416,23 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
     drawPageHeaderCompact(doc, pageW, `Statistike — ${cyrillicToLatin(name)}`, `Detaljni proračuni`, `Generisano: ${formatDate(new Date().toISOString())}`);
     let y = 34;
     const gradedCols = visibleCols.filter(c => c.maxPoints);
-    const totalMax = gradedCols.reduce((s,c) => s + (c.maxPoints||0), 0);
+    const totalMax = gradedCols.reduce((s, c) => s + (c.maxPoints || 0), 0);
     const studentSummaries = rows.map(row => {
-      let total=0, maxTotal=0;
+      let total = 0, maxTotal = 0;
       gradedCols.forEach(c => {
         const val = row.computedCells?.[c.id];
         const num = parseFloat(val);
         if (!isNaN(num) && c.maxPoints) { total += num; maxTotal += c.maxPoints; }
       });
-      const pct = maxTotal>0 ? (total/maxTotal)*100 : null;
+      const pct = maxTotal > 0 ? (total / maxTotal) * 100 : null;
       return { total, maxTotal, pct, studentName: row.studentName, indexNumber: row.indexNumber };
     });
     const passedCount = studentSummaries.filter(s => s.pct !== null && s.pct >= 60).length;
-    const avgPctOverall = studentSummaries.filter(s => s.pct !== null).length ? studentSummaries.reduce((a,s)=>a+(s.pct||0),0)/studentSummaries.filter(s=>s.pct!==null).length : 0;
+    const avgPctOverall = studentSummaries.filter(s => s.pct !== null).length ? studentSummaries.reduce((a, s) => a + (s.pct || 0), 0) / studentSummaries.filter(s => s.pct !== null).length : 0;
     y = kpiCards(doc, pageW, y, [
       { label: "Ukupno studenata", value: String(rows.length), color: C.primary },
-      { label: "Prosečan uspeh", value: `${Math.round(avgPctOverall)}%`, color: avgPctOverall>=60 ? C.emerald : C.amber },
-      { label: "Položilo (≥60%)", value: `${passedCount}/${rows.length}`, color: passedCount===rows.length ? C.emerald : C.red },
+      { label: "Prosečan uspeh", value: `${Math.round(avgPctOverall)}%`, color: avgPctOverall >= 60 ? C.emerald : C.amber },
+      { label: "Položilo (≥60%)", value: `${passedCount}/${rows.length}`, color: passedCount === rows.length ? C.emerald : C.red },
       { label: "Maks. bodova", value: String(totalMax), color: C.gray700 }
     ]);
     y += 5;
@@ -441,14 +443,17 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       doc.text(cyrillicToLatin(`${col.name}${maxP}`), 12, y);
       y += 4;
       const rowsStats = [
-        ["Broj studenata sa poenima:", s.count],
-        ["Ukupno poena:", s.sum !== null ? s.sum.toFixed(2) : "-"],
-        ["Prosečno poena:", s.average !== null ? s.average.toFixed(2) : "-"],
-        ["Medijana:", s.median !== null ? s.median.toFixed(2) : "-"],
-        ["Standardna devijacija:", s.stdDev !== null ? s.stdDev.toFixed(2) : "-"],
-        ["Min / Max:", s.min !== null ? `${s.min.toFixed(2)} / ${s.max.toFixed(2)}` : "-"]
+        [cyrillicToLatin("Broj studenata sa poenima:"), s.count],
+        [cyrillicToLatin("Ukupno poena:"), s.sum !== null ? s.sum.toFixed(2) : "-"],
+        [cyrillicToLatin("Prosečno poena:"), s.average !== null ? s.average.toFixed(2) : "-"],
+        [cyrillicToLatin("Medijana:"), s.median !== null ? s.median.toFixed(2) : "-"],
+        [cyrillicToLatin("Standardna devijacija:"), s.stdDev !== null ? s.stdDev.toFixed(2) : "-"],
+        [cyrillicToLatin("Min / Max:"), s.min !== null ? `${s.min.toFixed(2)} / ${s.max.toFixed(2)}` : "-"]
       ];
-      if (col.maxPoints && s.average !== null) rowsStats.push(["Prosečan procenat:", `${((s.average/col.maxPoints)*100).toFixed(2)}%`]);
+      if (col.maxPoints && s.average !== null) {
+        rowsStats.push([cyrillicToLatin("Prosečan procenat:"), `${((s.average / col.maxPoints) * 100).toFixed(2)}%`]);
+      }
+      if (col.maxPoints && s.average !== null) rowsStats.push(["Prosečan procenat:", `${((s.average / col.maxPoints) * 100).toFixed(2)}%`]);
       autoTable(doc, {
         startY: y,
         body: rowsStats,
@@ -465,11 +470,11 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
     doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...C.primary);
     doc.text("Pregled po studentima (samo bodovne aktivnosti)", 12, y);
     y += 4;
-    const studentBody = studentSummaries.map((s,idx) => [
-      String(idx+1), cyrillicToLatin(s.studentName||""), cyrillicToLatin(s.indexNumber||""),
-      s.maxTotal>0 ? s.total.toFixed(2) : "-", s.maxTotal>0 ? s.maxTotal.toFixed(2) : "-",
+    const studentBody = studentSummaries.map((s, idx) => [
+      String(idx + 1), cyrillicToLatin(s.studentName || ""), cyrillicToLatin(s.indexNumber || ""),
+      s.maxTotal > 0 ? s.total.toFixed(2) : "-", s.maxTotal > 0 ? s.maxTotal.toFixed(2) : "-",
       s.pct !== null ? `${s.pct.toFixed(2)}%` : "-",
-      s.pct !== null ? (s.pct>=60 ? "Položio" : s.pct>=40 ? "Uslovno" : "Pao") : "N/A"
+      s.pct !== null ? (s.pct >= 60 ? "Položio" : s.pct >= 40 ? "Uslovno" : "Pao") : "N/A"
     ]);
     autoTable(doc, {
       startY: y,
@@ -479,8 +484,8 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       headStyles: tHead,
       bodyStyles: tBody,
       alternateRowStyles: tAlt,
-      columnStyles: {0:{cellWidth:10,halign:"center"},1:{cellWidth:42},2:{cellWidth:28},3:{cellWidth:20,halign:"center"},4:{cellWidth:20,halign:"center"},5:{cellWidth:20,halign:"center"},6:{cellWidth:22,halign:"center"}},
-      didParseCell: (data) => { if (data.section==="body" && data.column.index===6) { const st=data.cell.text[0]; if(st==="Položio") data.cell.styles.textColor=C.emerald; else if(st==="Uslovno") data.cell.styles.textColor=C.amber; else if(st==="Pao") data.cell.styles.textColor=C.red; data.cell.styles.fontStyle="bold"; } },
+      columnStyles: { 0: { cellWidth: 10, halign: "center" }, 1: { cellWidth: 42 }, 2: { cellWidth: 28 }, 3: { cellWidth: 20, halign: "center" }, 4: { cellWidth: 20, halign: "center" }, 5: { cellWidth: 20, halign: "center" }, 6: { cellWidth: 22, halign: "center" } },
+      didParseCell: (data) => { if (data.section === "body" && data.column.index === 6) { const st = data.cell.text[0]; if (st === "Položio") data.cell.styles.textColor = C.emerald; else if (st === "Uslovno") data.cell.styles.textColor = C.amber; else if (st === "Pao") data.cell.styles.textColor = C.red; data.cell.styles.fontStyle = "bold"; } },
       margin: { left: 12, right: 12 }
     });
     drawFooters(doc, `Evidentiraj · ${cyrillicToLatin(name)}`);
@@ -505,37 +510,37 @@ app.post("/api/pdf/attendances", async (req, res) => {
     const pageW = doc.internal.pageSize.getWidth();
     const sessionCounts = {};
     attendances.forEach(a => { if (a.session?.sessionNumber) sessionCounts[a.session.sessionNumber] = (sessionCounts[a.session.sessionNumber] || 0) + 1; });
-    const sessionNums = Object.keys(sessionCounts).map(Number).sort((a,b)=>a-b);
-    const uniqueStudents = new Set(attendances.map(a=>a.student?.id)).size;
+    const sessionNums = Object.keys(sessionCounts).map(Number).sort((a, b) => a - b);
+    const uniqueStudents = new Set(attendances.map(a => a.student?.id)).size;
     const avgPerSession = sessionNums.length ? Math.round(attendances.length / sessionNums.length) : 0;
     drawPageHeaderCompact(doc, pageW, "Evidencija prisustva", `${cyrillicToLatin(subject.name)} (${subject.code})`, `Generisano: ${formatDate(new Date().toISOString())} · ${attendances.length} zapisa`);
     let y = 34;
     y = kpiCards(doc, pageW, y, [
       { label: "Ukupno zapisa", value: String(attendances.length), color: C.primary },
-      { label: "Različitih stud.", value: String(uniqueStudents), color: [14,165,233] },
+      { label: "Različitih stud.", value: String(uniqueStudents), color: [14, 165, 233] },
       { label: "Termina", value: String(sessionNums.length), color: C.gray700 },
       { label: "Prosek / termin", value: String(avgPerSession), color: C.emerald }
     ]);
     if (sessionNums.length) {
-      doc.setFillColor(...C.primary); doc.rect(12, y-3, 2.5, 5, "F"); doc.setFontSize(9.5); doc.setFont("helvetica","bold"); doc.setTextColor(...C.gray900);
+      doc.setFillColor(...C.primary); doc.rect(12, y - 3, 2.5, 5, "F"); doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...C.gray900);
       doc.text("Odaziv po terminu", 17, y); y += 4;
-      roundRect(doc, 12, y, pageW-24, 44, 3, C.white); doc.setDrawColor(...C.gray200); doc.setLineWidth(0.3); doc.roundedRect(12, y, pageW-24, 44, 3, 3, "S");
-      y += 6; y = sessionBars(doc, pageW, y, sessionNums.map(n=>({sessionNumber:String(n), count:String(sessionCounts[n])})), uniqueStudents); y += 4;
+      roundRect(doc, 12, y, pageW - 24, 44, 3, C.white); doc.setDrawColor(...C.gray200); doc.setLineWidth(0.3); doc.roundedRect(12, y, pageW - 24, 44, 3, 3, "S");
+      y += 6; y = sessionBars(doc, pageW, y, sessionNums.map(n => ({ sessionNumber: String(n), count: String(sessionCounts[n]) })), uniqueStudents); y += 4;
     }
     if (y > 200) { doc.addPage(); drawPageHeaderCompact(doc, pageW, "Evidencija prisustva (nastavak)", "", ""); y = 30; }
-    doc.setFillColor(...C.primary); doc.rect(12, y-3, 2.5, 5, "F"); doc.setFontSize(9.5); doc.setFont("helvetica","bold"); doc.setTextColor(...C.gray900);
+    doc.setFillColor(...C.primary); doc.rect(12, y - 3, 2.5, 5, "F"); doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...C.gray900);
     doc.text("Detaljna evidencija", 17, y); y += 4;
-    const bodyRows = [...attendances].sort((a,b)=>(a.student?.lastName||"").localeCompare(b.student?.lastName||"")).map(a=>[cyrillicToLatin(`${a.student?.lastName||""} ${a.student?.firstName||""}`), `${a.student?.smer||""} ${a.student?.indexNumber||""}/${a.student?.enrollmentYear||""}`, `T${a.session?.sessionNumber||"?"}`, formatDateTime(a.recordedAt)]);
+    const bodyRows = [...attendances].sort((a, b) => (a.student?.lastName || "").localeCompare(b.student?.lastName || "")).map(a => [cyrillicToLatin(`${a.student?.lastName || ""} ${a.student?.firstName || ""}`), `${a.student?.smer || ""} ${a.student?.indexNumber || ""}/${a.student?.enrollmentYear || ""}`, `T${a.session?.sessionNumber || "?"}`, formatDateTime(a.recordedAt)]);
     autoTable(doc, {
       startY: y, head: [["Student", "Indeks", "Termin", "Evidentirano"]], body: bodyRows,
       headStyles: tHead, bodyStyles: tBody, alternateRowStyles: tAlt,
       columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 35, font: "courier", fontSize: 7 }, 2: { cellWidth: 16, halign: "center" }, 3: {} },
-      didParseCell: (data) => { if (data.column.index===2 && data.section==="body") { data.cell.styles.textColor = C.primary; data.cell.styles.fillColor = C.primary50; data.cell.styles.fontStyle = "bold"; } },
+      didParseCell: (data) => { if (data.column.index === 2 && data.section === "body") { data.cell.styles.textColor = C.primary; data.cell.styles.fillColor = C.primary50; data.cell.styles.fontStyle = "bold"; } },
       margin: { left: 12, right: 12 }
     });
     drawFooters(doc, `Evidentiraj · ${cyrillicToLatin(subject.name)}`);
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
-    const filename = `prisustva_${subject.code}_${new Date().toISOString().slice(0,10)}.pdf`;
+    const filename = `prisustva_${subject.code}_${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${cyrillicToLatin(filename)}"`);
     return res.status(200).send(pdfBuffer);
@@ -552,23 +557,23 @@ app.post("/api/pdf/forms", async (req, res) => {
     if (!questions || !responses) return res.status(400).json({ error: "questions and responses are required" });
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageW = doc.internal.pageSize.getWidth();
-    drawPageHeaderCompact(doc, pageW, cyrillicToLatin(formTitle || "Odgovori"), `Ukupno odgovora: ${responses.length} | Poslednji: ${responses.length ? formatDateTime(responses[responses.length-1].submittedAt) : "Nema"}`, `Generisano: ${formatDate(new Date().toISOString())}`);
-    const head = [["#", "Datum", ...questions.map(q=>cyrillicToLatin(q.label))]];
-    const body = responses.map((r,idx)=>[String(idx+1), formatDateTime(r.submittedAt), ...questions.map(q=>{ let v=r.answers[q.id]; if(Array.isArray(v)) v=v.filter(Boolean).join(", "); return cyrillicToLatin(v!=null?String(v):""); })]);
+    drawPageHeaderCompact(doc, pageW, cyrillicToLatin(formTitle || "Odgovori"), `Ukupno odgovora: ${responses.length} | Poslednji: ${responses.length ? formatDateTime(responses[responses.length - 1].submittedAt) : "Nema"}`, `Generisano: ${formatDate(new Date().toISOString())}`);
+    const head = [["#", "Datum", ...questions.map(q => cyrillicToLatin(q.label))]];
+    const body = responses.map((r, idx) => [String(idx + 1), formatDateTime(r.submittedAt), ...questions.map(q => { let v = r.answers[q.id]; if (Array.isArray(v)) v = v.filter(Boolean).join(", "); return cyrillicToLatin(v != null ? String(v) : ""); })]);
     const colWidths = [8, 28];
     const remaining = pageW - 28 - 24;
     const perQuestion = remaining / questions.length;
-    for(let i=0;i<questions.length;i++) colWidths.push(perQuestion);
+    for (let i = 0; i < questions.length; i++) colWidths.push(perQuestion);
     autoTable(doc, {
       startY: 34, head, body, theme: "grid",
       styles: { font: "helvetica", fontSize: 8, cellPadding: 2, overflow: "linebreak" },
       headStyles: tHead, bodyStyles: tBody, alternateRowStyles: tAlt,
-      columnStyles: colWidths.reduce((acc,w,i)=>{acc[i]={cellWidth:w}; return acc;}, {}),
+      columnStyles: colWidths.reduce((acc, w, i) => { acc[i] = { cellWidth: w }; return acc; }, {}),
       margin: { left: 12, right: 12 }
     });
     drawFooters(doc, `Evidentiraj · ${cyrillicToLatin(formTitle)}`);
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
-    const filename = `${formTitle || "odgovori"}_${new Date().toISOString().slice(0,10)}.pdf`;
+    const filename = `${formTitle || "odgovori"}_${new Date().toISOString().slice(0, 10)}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${cyrillicToLatin(filename)}"`);
     return res.status(200).send(pdfBuffer);

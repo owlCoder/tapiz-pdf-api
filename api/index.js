@@ -1,5 +1,3 @@
-// api/pdf/index.js – cijeli fajl (zamijenite postojeći)
-
 const express = require("express");
 const cors = require("cors");
 const { jsPDF, GState } = require("jspdf");
@@ -69,24 +67,24 @@ function drawPageHeaderCompact(doc, pageW, title, subtitle, dateLabel) {
   // Pozadina – samo tanka linija, bez teškog preljeva
   doc.setFillColor(...C.white);
   doc.rect(0, 0, pageW, headerH, "F");
-  
+
   // Linija ispod headera (primarna boja)
   doc.setDrawColor(...C.primary);
   doc.setLineWidth(0.5);
   doc.line(10, headerH, pageW - 10, headerH);
-  
+
   // Naslov – lijevo
   doc.setTextColor(...C.primary);
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.text(cyrillicToLatin(title), 12, 10);
-  
+
   // Podnaslov – odmah ispod naslova (manji font)
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...C.gray500);
   doc.text(cyrillicToLatin(subtitle), 12, 16);
-  
+
   // Datum – desno, vertikalno centriran
   doc.setFontSize(6.5);
   doc.setTextColor(...C.gray400);
@@ -296,7 +294,20 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
     if (!name || !columns || !rows) return res.status(400).json({ error: "Nedostaju obavezna polja" });
 
     const visibleCols = (columns || []).filter(c => !c.isHidden);
-    // Funkcije za statistiku (identične Excelu)
+
+    // Pomoćne funkcije za statistiku
+    const calculateMedian = (arr) => {
+      const sorted = [...arr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    };
+
+    const calculateStandardDeviation = (values, mean) => {
+      if (values.length === 0) return null;
+      const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
+      return Math.sqrt(squaredDiffs.reduce((a, b) => a + b, 0) / values.length);
+    };
+
     const calculateStatistics = (rows, cols) => {
       const stats = {};
       cols.forEach(col => {
@@ -311,31 +322,43 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
         if (values.length > 0) {
           const sum = values.reduce((a, b) => a + b, 0);
           const avg = sum / values.length;
-          stats[col.id] = { count: values.length, sum, average: avg, min: Math.min(...values), max: Math.max(...values), median: calculateMedian(values), stdDev: calculateStandardDeviation(values, avg), maxPoints: col.maxPoints || null };
+          stats[col.id] = {
+            count: values.length,
+            sum: sum,
+            average: avg,
+            min: Math.min(...values),
+            max: Math.max(...values),
+            median: calculateMedian(values),
+            stdDev: calculateStandardDeviation(values, avg),
+            maxPoints: col.maxPoints || null
+          };
         } else {
-          stats[col.id] = { count: 0, sum: null, average: null, min: null, max: null, median: null, stdDev: null, maxPoints: col.maxPoints || null };
+          stats[col.id] = {
+            count: 0, sum: null, average: null, min: null, max: null,
+            median: null, stdDev: null, maxPoints: col.maxPoints || null
+          };
         }
       });
       return stats;
     };
-    const calculateMedian = (arr) => { const s = [...arr].sort((a, b) => a - b), m = Math.floor(s.length / 2); return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m]; };
-    const calculateStandardDeviation = (vals, mean) => Math.sqrt(vals.map(v => Math.pow(v - mean, 2)).reduce((a, b) => a + b, 0) / vals.length);
+
     const statistics = calculateStatistics(rows, visibleCols);
 
+    // Inicijalizacija PDF dokumenta (orijentacija landscape)
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const pageW = doc.internal.pageSize.getWidth();
+
+    // Zaglavlje prve strane
     drawPageHeaderCompact(doc, pageW, cyrillicToLatin(name), `Akademska ${cyrillicToLatin(academicYear || "")}`, `Generisano: ${formatDate(new Date().toISOString())}`);
 
-    // Zaglavlje tabele (samo nazivi kolona)
+    // ----- 1. Glavna tabela sa MIN, MAX, PROSEK redovima (samo na prvoj strani) -----
     const colNames = ["#", "Student", "Indeks", ...visibleCols.map(c => cyrillicToLatin(c.name))];
     const head = [colNames];
 
-    // Priprema podataka za statističke redove (MIN, MAX, PROSEK) – samo za prvu stranu
     const minRow = ["", "", "Min:", ...visibleCols.map(c => statistics[c.id]?.min !== null ? statistics[c.id].min.toFixed(2) : "-")];
     const maxRow = ["", "", "Max:", ...visibleCols.map(c => statistics[c.id]?.max !== null ? statistics[c.id].max.toFixed(2) : "-")];
     const avgRow = ["", "", "Prosek:", ...visibleCols.map(c => statistics[c.id]?.average !== null ? statistics[c.id].average.toFixed(2) : "-")];
 
-    // Podaci
     const dataRows = rows.map((row, idx) => [
       String(idx + 1),
       cyrillicToLatin(row.studentName || ""),
@@ -348,7 +371,6 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       })
     ]);
 
-    // Širine kolona
     const marginLeft = 10, marginRight = 10;
     const availableWidth = pageW - marginLeft - marginRight;
     const col0w = 10, col1w = 44, col2w = 28;
@@ -363,8 +385,6 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
     };
     for (let i = 0; i < dynCols; i++) colStyles[3 + i] = { cellWidth: dynWidth, halign: "center" };
 
-    // Prva strana: crtamo tabelu sa dodatnim redovima (min, max, prosek) kao dio body-ja
-    // Da bismo ih prikazali odmah ispod zaglavlja, dodajemo ih na početak body-ja i postavljamo posebne stilove.
     const firstPageBody = [minRow, maxRow, avgRow, ...dataRows];
     autoTable(doc, {
       startY: 34,
@@ -377,14 +397,14 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       alternateRowStyles: tAlt,
       columnStyles: colStyles,
       didParseCell: (data) => {
-        if (data.section === "body" && data.row.index < 3) { // min, max, prosek redovi
+        if (data.section === "body" && data.row.index < 3) {
           data.cell.styles.fillColor = C.primary50;
           data.cell.styles.fontStyle = "bold";
           data.cell.styles.textColor = C.primary;
           if (data.cell.text[0] === "-") data.cell.styles.textColor = C.gray400;
           if (data.column.index === 2) data.cell.styles.halign = "right";
         }
-        if (data.section === "body" && data.row.index >= 3) { // podaci studenata
+        if (data.section === "body" && data.row.index >= 3) {
           const colIdx = data.column.index;
           if (colIdx > 2) {
             const col = visibleCols[colIdx - 3];
@@ -408,15 +428,118 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       pageBreak: 'auto'
     });
 
-    // Za naredne strane (ako tabela pređe na novu stranicu) potrebno je da se ne ponavljaju min/max/prosek redovi.
-    // autoTable automatski ponavlja head, ali ne i dodatne redove. Međutim, pošto smo ih stavili u body,
-    // oni će se pojaviti samo na prvoj strani jer su dio prvog dijela tabele. autoTable će nastaviti sa ostatkom body-ja
-    // na sljedećim stranama, ali će prva tri reda (statistike) ostati na prvoj strani. To je upravo ono što želimo.
-
-    // ---- Statistike (dodatna strana) ----
+    // ----- 2. Statistike u grid-u 3x3 (nova stranica) -----
     doc.addPage();
-    drawPageHeaderCompact(doc, pageW, `Statistike — ${cyrillicToLatin(name)}`, `Detaljni proracuni`, `Generisano: ${formatDate(new Date().toISOString())}`);
-    let y = 34;
+    drawPageHeaderCompact(doc, pageW, `Statistike — ${cyrillicToLatin(name)}`, `Detaljni proračuni po aktivnostima`, `Generisano: ${formatDate(new Date().toISOString())}`);
+
+    let currentY = 34;
+    const margin = 12;
+    const gap = 4;                  // razmak između kartica
+    const cardWidth = (pageW - 2 * margin - 2 * gap) / 3; // tačno za 3 kolone
+    const leftMargin = margin;
+
+    // Funkcija za crtanje jedne kartice sa statistikama
+    function drawStatsCard(doc, x, y, col, stats) {
+      const maxP = col.maxPoints ? ` (max ${col.maxPoints})` : "";
+      const title = `${cyrillicToLatin(col.name)}${maxP}`;
+
+      const statRows = [
+        ["Broj studenata sa poenima:", stats.count],
+        ["Ukupno poena:", stats.sum !== null ? stats.sum.toFixed(2) : "-"],
+        ["Prosek poena:", stats.average !== null ? stats.average.toFixed(2) : "-"],
+        ["Medijana:", stats.median !== null ? stats.median.toFixed(2) : "-"],
+        ["Standardna devijacija:", stats.stdDev !== null ? stats.stdDev.toFixed(2) : "-"],
+        ["Min / Max:", stats.min !== null ? `${stats.min.toFixed(2)} / ${stats.max.toFixed(2)}` : "-"]
+      ];
+      if (col.maxPoints && stats.average !== null) {
+        statRows.push(["Procentualni prosek:", `${((stats.average / col.maxPoints) * 100).toFixed(2)}%`]);
+      }
+
+      const lineHeight = 4;
+      const headerHeight = 8;
+      const bottomPadding = 4;
+      const cardHeight = headerHeight + statRows.length * lineHeight + bottomPadding;
+
+      // Pozadina i okvir
+      doc.setFillColor(...C.white);
+      doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, "F");
+      doc.setDrawColor(...C.gray200);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, "S");
+
+      // Naslov
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...C.primary);
+      doc.text(title, x + 3, y + 5);
+
+      // Linija ispod naslova
+      doc.setDrawColor(...C.gray200);
+      doc.line(x + 2, y + 7, x + cardWidth - 2, y + 7);
+
+      // Redovi statistike
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "normal");
+      let textY = y + 11;
+      for (const [label, value] of statRows) {
+        doc.setTextColor(...C.gray700);
+        doc.text(cyrillicToLatin(label), x + 3, textY);
+        doc.setTextColor(...C.gray900);
+        doc.setFont("helvetica", "bold");
+        doc.text(String(value), x + cardWidth - 3, textY, { align: "right" });
+        doc.setFont("helvetica", "normal");
+        textY += lineHeight;
+      }
+      return cardHeight;
+    }
+
+    // Iteracija kroz kolone u redovima po 3
+    for (let i = 0; i < visibleCols.length; i += 3) {
+      const colsInRow = visibleCols.slice(i, i + 3);
+      const rowHeights = [];
+
+      // Izračunaj visinu svake kartice u redu
+      for (let j = 0; j < colsInRow.length; j++) {
+        const col = colsInRow[j];
+        const stats = statistics[col.id];
+        if (!stats) continue;
+        const maxP = col.maxPoints ? ` (max ${col.maxPoints})` : "";
+        const statRows = [
+          ["Broj studenata sa poenima:", stats.count],
+          ["Ukupno poena:", stats.sum !== null ? stats.sum.toFixed(2) : "-"],
+          ["Prosek poena:", stats.average !== null ? stats.average.toFixed(2) : "-"],
+          ["Medijana:", stats.median !== null ? stats.median.toFixed(2) : "-"],
+          ["Standardna devijacija:", stats.stdDev !== null ? stats.stdDev.toFixed(2) : "-"],
+          ["Min / Max:", stats.min !== null ? `${stats.min.toFixed(2)} / ${stats.max.toFixed(2)}` : "-"]
+        ];
+        if (col.maxPoints && stats.average !== null) {
+          statRows.push(["Procentualni prosek:", `${((stats.average / col.maxPoints) * 100).toFixed(2)}%`]);
+        }
+        const cardHeight = 8 + statRows.length * 4 + 4;
+        rowHeights.push(cardHeight);
+      }
+      const maxRowHeight = Math.max(...rowHeights, 0);
+
+      // Provera prelaska na novu stranicu
+      if (currentY + maxRowHeight + gap > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage();
+        drawPageHeaderCompact(doc, pageW, `Statistike — ${cyrillicToLatin(name)} (nastavak)`, "", `Generisano: ${formatDate(new Date().toISOString())}`);
+        currentY = 34;
+      }
+
+      // Crtanje kartica u tekućem redu
+      for (let j = 0; j < colsInRow.length; j++) {
+        const col = colsInRow[j];
+        const stats = statistics[col.id];
+        if (!stats) continue;
+        const x = leftMargin + j * (cardWidth + gap);
+        drawStatsCard(doc, x, currentY, col, stats);
+      }
+      currentY += maxRowHeight + gap;
+    }
+
+    // ----- 3. Pregled po studentima (osnovne statistike) -----
+    // Računanje ukupnih bodova po studentu
     const gradedCols = visibleCols.filter(c => c.maxPoints);
     const totalMax = gradedCols.reduce((s, c) => s + (c.maxPoints || 0), 0);
     const studentSummaries = rows.map(row => {
@@ -424,76 +547,76 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       gradedCols.forEach(c => {
         const val = row.computedCells?.[c.id];
         const num = parseFloat(val);
-        if (!isNaN(num) && c.maxPoints) { total += num; maxTotal += c.maxPoints; }
+        if (!isNaN(num) && c.maxPoints) {
+          total += num;
+          maxTotal += c.maxPoints;
+        }
       });
       const pct = maxTotal > 0 ? (total / maxTotal) * 100 : null;
       return { total, maxTotal, pct, studentName: row.studentName, indexNumber: row.indexNumber };
     });
     const passedCount = studentSummaries.filter(s => s.pct !== null && s.pct >= 60).length;
-    const avgPctOverall = studentSummaries.filter(s => s.pct !== null).length ? studentSummaries.reduce((a, s) => a + (s.pct || 0), 0) / studentSummaries.filter(s => s.pct !== null).length : 0;
-    y = kpiCards(doc, pageW, y, [
-      { label: "Ukupno studenata", value: String(rows.length), color: C.primary },
-      { label: "Prosek uspeha", value: `${Math.round(avgPctOverall)}%`, color: avgPctOverall >= 60 ? C.emerald : C.amber },
-      { label: "Ima uslov (≥60%)", value: `${passedCount}/${rows.length}`, color: passedCount === rows.length ? C.emerald : C.red },
-      { label: "Maks. bodova", value: String(totalMax), color: C.gray700 }
-    ]);
-    y += 5;
-    for (const col of visibleCols) {
-      const s = statistics[col.id];
-      const maxP = col.maxPoints ? ` (max ${col.maxPoints})` : "";
-      doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...C.primary);
-      doc.text(cyrillicToLatin(`${col.name}${maxP}`), 12, y);
-      y += 4;
-      const rowsStats = [
-  [cyrillicToLatin("Broj studenata sa poenima:"), s.count],
-  [cyrillicToLatin("Ukupno poena:"), s.sum !== null ? s.sum.toFixed(2) : "-"],
-  [cyrillicToLatin("Prosek poena:"), s.average !== null ? s.average.toFixed(2) : "-"],
-  [cyrillicToLatin("Medijana:"), s.median !== null ? s.median.toFixed(2) : "-"],
-  [cyrillicToLatin("Standardna devijacija:"), s.stdDev !== null ? s.stdDev.toFixed(2) : "-"],
-  [cyrillicToLatin("Min / Max:"), s.min !== null ? `${s.min.toFixed(2)} / ${s.max.toFixed(2)}` : "-"]
-];
-if (col.maxPoints && s.average !== null) {
-  rowsStats.push([cyrillicToLatin("Prosecan procenat:"), `${((s.average / col.maxPoints) * 100).toFixed(2)}%`]);
-}
-      if (col.maxPoints && s.average !== null) {
-        rowsStats.push([cyrillicToLatin("Prosecan procenat:"), `${((s.average / col.maxPoints) * 100).toFixed(2)}%`]);
-      }
-      if (col.maxPoints && s.average !== null) rowsStats.push(["Prosečan procenat:", `${((s.average / col.maxPoints) * 100).toFixed(2)}%`]);
-      autoTable(doc, {
-        startY: y,
-        body: rowsStats,
-        theme: "plain",
-        styles: { fontSize: 7.5, cellPadding: 1.5 },
-        columnStyles: { 0: { cellWidth: 48, fontStyle: "bold" }, 1: { cellWidth: 28, halign: "right" } },
-        margin: { left: 12 },
-        tableWidth: 80
-      });
-      y = doc.lastAutoTable.finalY + 5;
-      if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); drawPageHeaderCompact(doc, pageW, "Statistike (nastavak)", "", ""); y = 30; }
+    const avgPctOverall = studentSummaries.filter(s => s.pct !== null).length
+      ? studentSummaries.reduce((a, s) => a + (s.pct || 0), 0) / studentSummaries.filter(s => s.pct !== null).length
+      : 0;
+
+    // Dodajemo KPI kartice za pregled
+    if (currentY > doc.internal.pageSize.getHeight() - 60) {
+      doc.addPage();
+      drawPageHeaderCompact(doc, pageW, "Pregled po studentima", "", `Generisano: ${formatDate(new Date().toISOString())}`);
+      currentY = 34;
+    } else {
+      currentY += 6;
     }
-    if (y > doc.internal.pageSize.getHeight() - 50) { doc.addPage(); drawPageHeaderCompact(doc, pageW, "Pregled po studentima", "", ""); y = 30; }
-    doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...C.primary);
-    doc.text("Pregled po studentima (samo bodovne aktivnosti)", 12, y);
-    y += 4;
+
+    doc.setFontSize(9.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...C.primary);
+    doc.text("Pregled po studentima (samo bodovne aktivnosti)", 12, currentY);
+    currentY += 4;
+
     const studentBody = studentSummaries.map((s, idx) => [
-      String(idx + 1), cyrillicToLatin(s.studentName || ""), cyrillicToLatin(s.indexNumber || ""),
-      s.maxTotal > 0 ? s.total.toFixed(2) : "-", s.maxTotal > 0 ? s.maxTotal.toFixed(2) : "-",
+      String(idx + 1),
+      cyrillicToLatin(s.studentName || ""),
+      cyrillicToLatin(s.indexNumber || ""),
+      s.maxTotal > 0 ? s.total.toFixed(2) : "-",
+      s.maxTotal > 0 ? s.maxTotal.toFixed(2) : "-",
       s.pct !== null ? `${s.pct.toFixed(2)}%` : "-",
       s.pct !== null ? (s.pct >= 60 ? "Položio" : s.pct >= 40 ? "Uslovno" : "Pao") : "N/A"
     ]);
+
     autoTable(doc, {
-      startY: y,
+      startY: currentY,
       head: [["#", "Student", "Indeks", "Osvojeno", "Maksimum", "Procenat", "Status"]],
       body: studentBody,
       theme: "grid",
       headStyles: tHead,
       bodyStyles: tBody,
       alternateRowStyles: tAlt,
-      columnStyles: { 0: { cellWidth: 10, halign: "center" }, 1: { cellWidth: 42 }, 2: { cellWidth: 28 }, 3: { cellWidth: 20, halign: "center" }, 4: { cellWidth: 20, halign: "center" }, 5: { cellWidth: 20, halign: "center" }, 6: { cellWidth: 22, halign: "center" } },
-      didParseCell: (data) => { if (data.section === "body" && data.column.index === 6) { const st = data.cell.text[0]; if (st === "Položio") data.cell.styles.textColor = C.emerald; else if (st === "Uslovno") data.cell.styles.textColor = C.amber; else if (st === "Pao") data.cell.styles.textColor = C.red; data.cell.styles.fontStyle = "bold"; } },
+      columnStyles: {
+        0: { cellWidth: 10, halign: "center" },
+        1: { cellWidth: 42 },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 20, halign: "center" },
+        4: { cellWidth: 20, halign: "center" },
+        5: { cellWidth: 20, halign: "center" },
+        6: { cellWidth: 22, halign: "center" }
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 6) {
+          const st = data.cell.text[0];
+          if (st === "Položio") data.cell.styles.textColor = C.emerald;
+          else if (st === "Uslovno") data.cell.styles.textColor = C.amber;
+          else if (st === "Pao") data.cell.styles.textColor = C.red;
+          data.cell.styles.fontStyle = "bold";
+        }
+      },
       margin: { left: 12, right: 12 }
     });
+
+    // Footer na svim stranama
     drawFooters(doc, `Evidentiraj · ${cyrillicToLatin(name)}`);
+
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
     let filename = `${name}_${academicYear || ""}.pdf`.replace(/[^a-z0-9_\- ]/gi, "_");
     filename = cyrillicToLatin(filename);

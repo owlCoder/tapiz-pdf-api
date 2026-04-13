@@ -395,6 +395,35 @@ function calculateStandardDeviation(values, mean) {
   return Math.sqrt(avgSquareDiff);
 }
 
+// ─── Poboljšano zaglavlje strane (profesionalnije) ──────────────────────
+function drawPageHeaderImproved(doc, pageW, title, subtitle, dateLabel) {
+  // Pozadinska traka
+  doc.setFillColor(...C.primary);
+  doc.rect(0, 0, pageW, 28, "F");
+  doc.setFillColor(...C.primary800);
+  doc.rect(0, 0, pageW * 0.6, 28, "F");
+  
+  // Naslov i podnaslov
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(cyrillicToLatin(title), 14, 12);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(220, 240, 255);
+  doc.text(cyrillicToLatin(subtitle), 14, 20);
+  
+  // Datum desno
+  doc.setFontSize(7);
+  doc.setTextColor(200, 220, 240);
+  doc.text(cyrillicToLatin(dateLabel), pageW - 12, 10, { align: "right" });
+  
+  // Donja linija zaglavlja
+  doc.setDrawColor(...C.primary);
+  doc.setLineWidth(0.5);
+  doc.line(14, 28, pageW - 14, 28);
+}
+
 // ─── Ažurirani endpoint za bodovnu listu ─────────────────────────────────
 app.post("/api/pdf/scoresheet", async (req, res) => {
   try {
@@ -410,24 +439,49 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
 
-    // ---- 1. GLAVNI SHEET (tabela sa statistikom) ----
-    drawPageHeader(doc, pageW,
+    // ---- 1. GLAVNI SHEET (tabela sa podacima) ----
+    drawPageHeaderImproved(doc, pageW,
       cyrillicToLatin(name),
       `Akademska ${cyrillicToLatin(academicYear || "")}`,
       `Generisano: ${formatDate(new Date().toISOString())}`
     );
 
-    // Priprema zaglavlja: tri reda (naslov kolona, max poeni, proseci)
+    let currentY = 38;
+
+    // ---- Red sa prosekom (samo na prvoj strani) ----
+    // Pripremamo podatke za prosek
+    const avgRowData = visibleCols.map(col => {
+      const stats = statistics[col.id];
+      return stats.average !== null ? stats.average.toFixed(2) : "-";
+    });
+    // Crtamo posebnu malu tabelu za prosek
+    const avgTableStartY = currentY;
+    autoTable(doc, {
+      startY: avgTableStartY,
+      body: [["Prosek:", ...avgRowData]],
+      theme: "plain",
+      styles: { fontSize: 8, cellPadding: 2, fontStyle: "bold" },
+      columnStyles: {
+        0: { cellWidth: 18, textColor: C.primary, fontStyle: "bold", halign: "right" },
+      },
+      margin: { left: 10, right: 10 },
+      tableWidth: pageW - 20,
+      didDrawCell: (data) => {
+        // Obojavanje pozadine za ćelije sa prosekom
+        if (data.row.index === 0 && data.column.index > 0) {
+          data.cell.styles.fillColor = C.primary50;
+          data.cell.styles.textColor = C.primary;
+          data.cell.styles.fontStyle = "bold";
+          if (data.cell.text[0] === "-") data.cell.styles.textColor = C.gray400;
+        }
+      },
+    });
+    currentY = doc.lastAutoTable.finalY + 4;
+
+    // ---- Zaglavlje tabele (dva reda: nazivi kolona i max poeni) ----
     const headerRows = [
-      // Red 1: Nazivi kolona
       ["#", "Student", "Indeks", ...visibleCols.map(c => cyrillicToLatin(c.name))],
-      // Red 2: Max poeni
-      ["", "", "Max →", ...visibleCols.map(c => c.maxPoints != null ? String(c.maxPoints) : "")],
-      // Red 3: Proseci
-      ["", "", "Prosek →", ...visibleCols.map(c => {
-        const stats = statistics[c.id];
-        return stats.average !== null ? stats.average.toFixed(2) : "-";
-      })]
+      ["", "", "Max:", ...visibleCols.map(c => c.maxPoints != null ? String(c.maxPoints) : "")]
     ];
 
     // Podaci
@@ -443,10 +497,10 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       })
     ]);
 
-    // Širine kolona (prilagođene PDF-u)
+    // Širine kolona
     const marginLeft = 10, marginRight = 10;
     const availableWidth = pageW - marginLeft - marginRight;
-    const col0Width = 10, col1Width = 42, col2Width = 28;
+    const col0Width = 10, col1Width = 44, col2Width = 28;
     const fixedTotal = col0Width + col1Width + col2Width;
     const remainingWidth = availableWidth - fixedTotal;
     const dynamicColCount = visibleCols.length;
@@ -461,35 +515,25 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       columnStyles[3 + i] = { cellWidth: dynamicColWidth, halign: "center" };
     }
 
-    // Crtanje tabele sa više redova zaglavlja
+    // Glavna tabela (head se ponavlja na svakoj strani, ali samo prva dva reda)
     autoTable(doc, {
-      startY: 38,
+      startY: currentY,
       head: headerRows,
       body: dataRows,
       theme: "grid",
       styles: { font: "helvetica", fontSize: 8, cellPadding: 1.5, overflow: "linebreak" },
       headStyles: {
-        ...tHead,
         fillColor: C.gray50,
         textColor: C.gray700,
         fontStyle: "bold",
         halign: "center",
+        lineWidth: 0.2,
+        lineColor: C.gray200,
       },
       bodyStyles: tBody,
       alternateRowStyles: tAlt,
       columnStyles: columnStyles,
       didParseCell: (data) => {
-        // Obojavanje proseka u trećem redu zaglavlja
-        if (data.section === "head" && data.row.index === 2 && data.column.index > 2) {
-          const val = data.cell.text[0];
-          if (val !== "-") {
-            data.cell.styles.textColor = C.primary;
-            data.cell.styles.fontStyle = "bold";
-            data.cell.styles.fillColor = C.primary50;
-          } else {
-            data.cell.styles.textColor = C.gray400;
-          }
-        }
         // Obojavanje ćelija sa podacima prema procentu
         if (data.section === "body" && data.column.index > 2) {
           const col = visibleCols[data.column.index - 3];
@@ -507,13 +551,20 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
             data.cell.styles.fillColor = C.primary100;
           }
         }
+        // Podešavanje za red "Max:" – poravnanje
+        if (data.section === "head" && data.row.index === 1 && data.column.index > 2) {
+          data.cell.styles.fontStyle = "italic";
+          data.cell.styles.textColor = C.gray500;
+          data.cell.styles.fillColor = C.primary50;
+        }
       },
       margin: { left: marginLeft, right: marginRight },
+      pageBreak: "auto",
     });
 
     // ---- 2. STATISTIČKI SHEET (dodatna strana) ----
     doc.addPage();
-    drawPageHeader(doc, pageW,
+    drawPageHeaderImproved(doc, pageW,
       `Statistike — ${cyrillicToLatin(name)}`,
       `Detaljni proračuni`,
       `Generisano: ${formatDate(new Date().toISOString())}`
@@ -581,11 +632,11 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
         tableWidth: 80,
       });
       y = doc.lastAutoTable.finalY + 6;
-      if (y > pageH - 30) { doc.addPage(); drawPageHeader(doc, pageW, "Statistike (nastavak)", "", ""); y = 38; }
+      if (y > pageH - 30) { doc.addPage(); drawPageHeaderImproved(doc, pageW, "Statistike (nastavak)", "", ""); y = 38; }
     }
 
     // Pregled po studentima
-    if (y > pageH - 50) { doc.addPage(); drawPageHeader(doc, pageW, "Pregled po studentima", "", ""); y = 38; }
+    if (y > pageH - 50) { doc.addPage(); drawPageHeaderImproved(doc, pageW, "Pregled po studentima", "", ""); y = 38; }
     doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(...C.primary);
     doc.text("Pregled po studentima (samo bodovne aktivnosti)", 14, y);
     y += 5;
@@ -639,102 +690,6 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
   } catch (err) {
     console.error("PDF scoresheet generation error:", err);
     return res.status(500).json({ error: "Neuspešno generisanje PDF-a", details: String(err) });
-  }
-});
-
-// ─── ENDPOINT: Evidencija prisustva (attendances) ────────────────────────
-app.post("/api/pdf/attendances", async (req, res) => {
-  try {
-    const { attendances, subject } = req.body;
-    if (!attendances || !subject) {
-      return res.status(400).json({ error: "Nedostaju obavezna polja: attendances, subject" });
-    }
-
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pageW = doc.internal.pageSize.getWidth();
-
-    const sessionCounts = {};
-    attendances.forEach((a) => {
-      const sn = a.session?.sessionNumber;
-      if (sn) sessionCounts[sn] = (sessionCounts[sn] ?? 0) + 1;
-    });
-    const sessionNums = Object.keys(sessionCounts).map(Number).sort((a, b) => a - b);
-    const uniqueStudents = new Set(attendances.map((a) => a.student?.id)).size;
-    const avgPerSession = sessionNums.length > 0 ? Math.round(attendances.length / sessionNums.length) : 0;
-
-    drawPageHeader(doc, pageW,
-      "Evidencija prisustva",
-      `${cyrillicToLatin(subject.name)} (${subject.code})`,
-      `Generisano: ${formatDate(new Date().toISOString())}  ·  ${attendances.length} zapisa`,
-    );
-
-    let y = 38;
-    y = kpiCards(doc, pageW, y, [
-      { label: "Ukupno zapisa",    value: String(attendances.length), color: C.primary },
-      { label: "Razlicitih stud.", value: String(uniqueStudents),     color: [14, 165, 233] },
-      { label: "Termina",          value: String(sessionNums.length), color: C.gray700 },
-      { label: "Prosek / termin",  value: String(avgPerSession),      color: C.emerald },
-    ]);
-
-    if (sessionNums.length > 0) {
-      y = sectionTitle(doc, "Odaziv po terminu", y) + 2;
-      roundRect(doc, 14, y, pageW - 28, 46, 3, C.white);
-      doc.setDrawColor(...C.gray200); doc.setLineWidth(0.3);
-      doc.roundedRect(14, y, pageW - 28, 46, 3, 3, "S");
-      y += 6;
-      y = sessionBars(doc, pageW, y,
-        sessionNums.map((n) => ({ sessionNumber: String(n), count: String(sessionCounts[n]) })),
-        uniqueStudents,
-      );
-      y += 2;
-    }
-
-    if (y > 200) { doc.addPage(); y = 16; }
-    y = sectionTitle(doc, "Detaljna evidencija", y) + 2;
-
-    const bodyRows = [...attendances]
-      .sort((a, b) => (a.student?.lastName || "").localeCompare(b.student?.lastName || ""))
-      .map((a) => [
-        cyrillicToLatin(`${a.student?.lastName || ""} ${a.student?.firstName || ""}`),
-        `${a.student?.smer || ""} ${a.student?.indexNumber || ""}/${a.student?.enrollmentYear || ""}`,
-        `T${a.session?.sessionNumber || "?"}`,
-        formatDateTime(a.recordedAt),
-      ]);
-
-    autoTable(doc, {
-      startY: y,
-      head: [[cyrillicToLatin("Student"), cyrillicToLatin("Indeks"), cyrillicToLatin("Termin"), cyrillicToLatin("Evidentirano")]],
-      body: bodyRows,
-      headStyles: tHead,
-      bodyStyles: tBody,
-      alternateRowStyles: tAlt,
-      columnStyles: {
-        0: { cellWidth: 55 },
-        1: { cellWidth: 35, font: "courier", fontSize: 7 },
-        2: { cellWidth: 16, halign: "center" },
-        3: { },
-      },
-      didParseCell: (data) => {
-        if (data.column.index === 2 && data.section === "body") {
-          data.cell.styles.textColor = C.primary;
-          data.cell.styles.fillColor = C.primary50;
-          data.cell.styles.fontStyle = "bold";
-        }
-      },
-      margin: { left: 14, right: 14 },
-    });
-
-    drawFooters(doc, `Evidentiraj · ${cyrillicToLatin(subject.name)}`);
-
-    const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
-    const filename = `prisustva_${subject.code}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${cyrillicToLatin(filename)}"`);
-    res.setHeader("Content-Length", pdfBuffer.length);
-    return res.status(200).send(pdfBuffer);
-  } catch (err) {
-    console.error("PDF attendances generation error:", err);
-    return res.status(500).json({ error: "Neuspesno generisanje PDF-a", details: String(err) });
   }
 });
 

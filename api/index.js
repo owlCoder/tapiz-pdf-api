@@ -64,7 +64,7 @@ const C = {
   white: [255, 255, 255],
 };
 
-function drawPageHeaderMinimal(doc, pageW, title, subtitle, dateLabel) {
+function drawPageHeaderCompact(doc, pageW, title, subtitle, dateLabel) {
   const headerH = 18; // još niži, 18 mm
   // Pozadina – samo tanka linija, bez teškog preljeva
   doc.setFillColor(...C.white);

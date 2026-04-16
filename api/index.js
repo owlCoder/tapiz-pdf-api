@@ -40,18 +40,23 @@ function formatDateTime(iso) {
   return `${formatDate(iso)} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
 
-// ─── Boje (usklađene sa Excel verzijom) ──────────────────────────────────
+// ─── Boje (usklađene sa novom teal temom) ──────────────────────────────────
 const C = {
-  primary: [23, 94, 141],  // #175E8D
-  primary50: [242, 248, 253],
-  primary100: [228, 240, 250],
-  primary800: [23, 80, 117],
+  // Teal primary palette (from CSS)
+  primary: [47, 157, 147],      // primary-500 #2f9d93
+  primary50: [238, 250, 248],   // primary-50 #eefaf8
+  primary100: [213, 242, 239],  // primary-100 #d5f2ef
+  primary800: [19, 69, 64],     // primary-800 #134540
+  
+  // Semantic colors (keep Tailwind defaults)
   emerald: [22, 163, 74],
   emerald50: [240, 253, 244],
   amber: [217, 119, 6],
   amber50: [255, 251, 235],
   red: [220, 38, 38],
   red50: [254, 242, 242],
+  
+  // Grayscale (Tailwind)
   gray50: [249, 250, 251],
   gray100: [243, 244, 246],
   gray200: [229, 231, 235],
@@ -63,29 +68,29 @@ const C = {
 };
 
 function drawPageHeaderCompact(doc, pageW, title, subtitle, dateLabel) {
-  const headerH = 18; // još niži, 18 mm
-  // Pozadina – samo tanka linija, bez teškog preljeva
+  const headerH = 18;
+  // Pozadina
   doc.setFillColor(...C.white);
   doc.rect(0, 0, pageW, headerH, "F");
 
-  // Linija ispod headera (primarna boja)
+  // Linija ispod headera (teal primary)
   doc.setDrawColor(...C.primary);
   doc.setLineWidth(0.5);
   doc.line(10, headerH, pageW - 10, headerH);
 
-  // Naslov – lijevo
+  // Naslov – lijevo (teal)
   doc.setTextColor(...C.primary);
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.text(cyrillicToLatin(title), 12, 10);
 
-  // Podnaslov – odmah ispod naslova (manji font)
+  // Podnaslov
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...C.gray500);
   doc.text(cyrillicToLatin(subtitle), 12, 16);
 
-  // Datum – desno, vertikalno centriran
+  // Datum
   doc.setFontSize(6.5);
   doc.setTextColor(...C.gray400);
   doc.text(cyrillicToLatin(dateLabel), pageW - 12, 8, { align: "right" });
@@ -155,6 +160,7 @@ function sessionBars(doc, pageW, y, sessions, total) {
     const p = total > 0 ? parseInt(s.count) / total : 0;
     const bh = Math.max(1.5, p * maxH);
     const bx = startX + i * (barW + 1.5), by = y + maxH - bh;
+    // Use teal primary for low bars
     const col = p >= 0.7 ? C.emerald : p >= 0.5 ? C.amber : C.primary;
     roundRect(doc, bx, by, barW, bh, 1.5, col);
     doc.setFontSize(5); doc.setFont("helvetica", "normal"); doc.setTextColor(...C.gray500);
@@ -434,8 +440,8 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
 
     let currentY = 34;
     const margin = 12;
-    const gap = 4;                  // razmak između kartica
-    const cardWidth = (pageW - 2 * margin - 2 * gap) / 3; // tačno za 3 kolone
+    const gap = 4;
+    const cardWidth = (pageW - 2 * margin - 2 * gap) / 3;
     const leftMargin = margin;
 
     // Funkcija za crtanje jedne kartice sa statistikama
@@ -467,7 +473,7 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
       doc.setLineWidth(0.3);
       doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, "S");
 
-      // Naslov
+      // Naslov (teal)
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...C.primary);

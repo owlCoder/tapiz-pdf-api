@@ -753,7 +753,10 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
 });
 
 // ──────────────────────────────────────────────────────────────────
-//  API: Attendance Log (improved design)
+//  API: Attendance Log 
+// ──────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────
+//  API: Attendance Log (with session type)
 // ──────────────────────────────────────────────────────────────────
 app.post("/api/pdf/attendances", async (req, res) => {
   try {
@@ -763,7 +766,11 @@ app.post("/api/pdf/attendances", async (req, res) => {
     const pageW = doc.internal.pageSize.getWidth();
 
     const sessionCounts = {};
-    attendances.forEach(a => { if (a.session?.sessionNumber) sessionCounts[a.session.sessionNumber] = (sessionCounts[a.session.sessionNumber] || 0) + 1; });
+    const sessionTypeCounts = {}; // optional: count per type
+    attendances.forEach(a => {
+      if (a.session?.sessionNumber) sessionCounts[a.session.sessionNumber] = (sessionCounts[a.session.sessionNumber] || 0) + 1;
+      if (a.session?.sessionType) sessionTypeCounts[a.session.sessionType] = (sessionTypeCounts[a.session.sessionType] || 0) + 1;
+    });
     const sessionNums = Object.keys(sessionCounts).map(Number).sort((a,b)=>a-b);
     const uniqueStudents = new Set(attendances.map(a => a.student?.id)).size;
     const avgPerSession = sessionNums.length ? Math.round(attendances.length / sessionNums.length) : 0;
@@ -806,30 +813,41 @@ app.post("/api/pdf/attendances", async (req, res) => {
     doc.text("Detaljna evidencija", 18, y + 2);
     y += 8;
 
+    // Build rows with session type
     const bodyRows = [...attendances].sort((a,b) => (a.student?.lastName||"").localeCompare(b.student?.lastName||"")).map(a => [
       cyrillicToLatin(`${a.student?.lastName || ""} ${a.student?.firstName || ""}`),
       `${a.student?.smer || ""} ${a.student?.indexNumber || ""}/${a.student?.enrollmentYear || ""}`,
       `T${a.session?.sessionNumber || "?"}`,
+      cyrillicToLatin(a.session?.sessionType || ""),
       formatDateTime(a.recordedAt)
     ]);
 
     autoTable(doc, {
       startY: y,
-      head: [["Student", "Indeks", "Termin", "Evidentirano"]],
+      head: [["Student", "Indeks", "Termin", "Tip termina", "Evidentirano"]],
       body: bodyRows,
       headStyles: tableHeadStyles,
       bodyStyles: tableBodyStyles,
       alternateRowStyles: tableAltRowStyles,
       columnStyles: {
-        0: { cellWidth: 55 },
-        1: { cellWidth: 35, font: "courier", fontSize: 7 },
-        2: { cellWidth: 18, halign: "center" },
-        3: { cellWidth: 32 }
+        0: { cellWidth: 48 },
+        1: { cellWidth: 32, font: "courier", fontSize: 7 },
+        2: { cellWidth: 16, halign: "center" },
+        3: { cellWidth: 30, halign: "center" },
+        4: { cellWidth: 28, halign: "center" }
       },
       didParseCell: (data) => {
         if (data.column.index === 2 && data.section === "body") {
           data.cell.styles.textColor = C.primary;
           data.cell.styles.fillColor = C.primary50;
+          data.cell.styles.fontStyle = "bold";
+        }
+        if (data.column.index === 3 && data.section === "body") {
+          const type = data.cell.text[0];
+          if (type === "Predavanja") data.cell.styles.textColor = C.blue;
+          else if (type === "Računarske vežbe") data.cell.styles.textColor = C.primary;
+          else if (type === "Auditorne vežbe") data.cell.styles.textColor = C.amber;
+          else if (type === "Labaratorijske vežbe") data.cell.styles.textColor = C.emerald;
           data.cell.styles.fontStyle = "bold";
         }
       },

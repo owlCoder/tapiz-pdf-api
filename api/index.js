@@ -414,7 +414,7 @@ app.post("/api/pdf/stats", async (req, res) => {
           1: { cellWidth: 34, font: "courier", fontSize: 7 },
           2: { cellWidth: 22, halign: "center" },
           3: { cellWidth: 16, halign: "center", fontStyle: "bold" },
-          4: { cellWidth: 24, halign: "center" }
+          4: { cellWidth: 'auto', halign: "center" } 
         },
         didParseCell: (data) => {
           if (data.section === "body") {
@@ -725,7 +725,7 @@ app.post("/api/pdf/scoresheet", async (req, res) => {
         3: { cellWidth: 20, halign: "center" },
         4: { cellWidth: 20, halign: "center" },
         5: { cellWidth: 20, halign: "center" },
-        6: { cellWidth: 22, halign: "center" }
+        6: { cellWidth: 'auto', halign: "center" } 
       },
       didParseCell: (data) => {
         if (data.section === "body" && data.column.index === 6) {
@@ -834,7 +834,7 @@ app.post("/api/pdf/attendances", async (req, res) => {
         1: { cellWidth: 32, font: "courier", fontSize: 7 },
         2: { cellWidth: 16, halign: "center" },
         3: { cellWidth: 30, halign: "center" },
-        4: { cellWidth: 28, halign: "center" }
+        4: { cellWidth: 'auto', halign: "center" }
       },
       didParseCell: (data) => {
         if (data.column.index === 2 && data.section === "body") {

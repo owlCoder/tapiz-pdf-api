@@ -40,4 +40,4 @@ export const C: Record<string, RGB> = {
   gray800: [31,  41,  55],
   gray900: [17,  24,  39],
   white:   [255, 255, 255],
-};
+}; 

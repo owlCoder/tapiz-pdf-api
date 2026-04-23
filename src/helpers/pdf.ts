@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
-import { C, type RGB } from "../core/colors.ts";
-import { cyrillicToLatin } from "./text.ts";
+import { C, type RGB } from "../core/colors";
+import { cyrillicToLatin } from "./text";
 
 // ──────────────────────────────────────────────────────────────────
 //  Primitive helpers

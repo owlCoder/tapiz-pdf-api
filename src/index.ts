@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
-import { app } from "./app.ts";
+import { app } from "./app";
 
 const PORT = parseInt(process.env.PORT ?? "3002", 10);
 

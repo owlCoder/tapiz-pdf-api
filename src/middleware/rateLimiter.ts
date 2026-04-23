@@ -1,9 +1,9 @@
 import { rateLimiter, RedisStore } from "hono-rate-limiter";
-import { getValkeyClient } from "../core/valkeyClient.ts";
+import { getValkeyClient } from "../core/valkeyClient";
 
 /**
  * Thin ioredis → hono-rate-limiter adapter.
- * Mirrors the pattern in the Tapiz REST API rateLimiter.ts.
+ * Mirrors the pattern in the Tapiz REST API rateLimiter.
  */
 function makeRedisStore(prefix: string) {
   const redis = getValkeyClient();

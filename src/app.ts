@@ -2,12 +2,12 @@ import "dotenv/config";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
-import { errorHandler } from "./middleware/errorHandler.ts";
-import { pdfRateLimiter } from "./middleware/rateLimiter.ts";
-import { statsRouter } from "./routes/statsRoute.ts";
-import { scoresheetRouter } from "./routes/scoresheetRoute.ts";
-import { attendancesRouter, formsRouter } from "./routes/attendancesFormsRoute.ts";
-import { docsHtml } from "./core/docs.ts";
+import { errorHandler } from "./middleware/errorHandler";
+import { pdfRateLimiter } from "./middleware/rateLimiter";
+import { statsRouter } from "./routes/statsRoute";
+import { scoresheetRouter } from "./routes/scoresheetRoute";
+import { attendancesRouter, formsRouter } from "./routes/attendancesFormsRoute";
+import { docsHtml } from "./core/docs";
 
 const app = new Hono();
 

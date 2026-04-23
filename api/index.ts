@@ -1,6 +1,6 @@
 import "dotenv/config";
 import type { IncomingMessage, ServerResponse } from "http";
-import { app } from "../src/app.ts";
+import { app } from "../src/app";
 
 export const config = { runtime: "nodejs" };
 

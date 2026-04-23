@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { C } from "../core/colors.ts";
-import { cyrillicToLatin, formatDate, formatDateTime } from "../helpers/text.ts";
+import { C } from "../core/colors";
+import { cyrillicToLatin, formatDate, formatDateTime } from "../helpers/text";
 import {
   drawPageHeader, drawFooter, kpiCards, sessionBars,
   sectionTitle, roundRect,
   tableHeadStyles, tableBodyStyles, tableAltRowStyles,
-} from "../helpers/pdf.ts";
+} from "../helpers/pdf";
 
 export const attendancesRouter = new Hono();
 export const formsRouter = new Hono();

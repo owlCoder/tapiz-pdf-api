@@ -1,21 +1,27 @@
 {
-  "name": "evident-pdf-service",
-  "version": "1.0.0",
-  "description": "Vercel serverless PDF export service for Evidentiraj",
-  "main": "index.js",
+  "name": "tapiz-pdf-service",
+  "version": "2.0.0",
+  "description": "Tapiz PDF export service — Hono + TypeScript",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "vercel dev",
-    "start": "node index.js",
-    "local": "node api/index.js"
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "express": "^5.2.1",
-    "cors": "^2.8.6",
+    "@hono/node-server": "^2.0.0",
+    "dotenv": "^17.4.2",
+    "hono": "^4.12.14",
+    "hono-rate-limiter": "^0.5.3",
+    "ioredis": "^5.10.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7"
   },
   "devDependencies": {
-    "@vercel/node": "^5.6.18",
-    "typescript": "^6.0.2"
+    "@types/node": "^25.6.0",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
   }
 }

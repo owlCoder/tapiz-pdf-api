@@ -1,22 +1,22 @@
 // ──────────────────────────────────────────────────────────────────
 //  Color Palette — matches Tapiz frontend CSS custom properties
-//  Primary: Teal (--color-primary-* series)
+//  Primary: Warm brown / ochre (--color-primary-* series)
 // ──────────────────────────────────────────────────────────────────
 
 export type RGB = [number, number, number];
 
 export const C: Record<string, RGB> = {
-  // Primary teal shades
-  primary:    [47,  157, 147],   // 500
-  primary50:  [238, 250, 248],   // 50
-  primary100: [213, 242, 239],   // 100
-  primary200: [171, 228, 222],   // 200
-  primary300: [122, 210, 201],   // 300
-  primary400: [76,  188, 177],   // 400
-  primary600: [35,  125, 117],   // 600
-  primary700: [27,  95,  89],    // 700
-  primary800: [19,  69,  64],    // 800
-  primary900: [12,  46,  43],    // 900
+  // Primary warm brown shades
+  primary:    [160, 128, 64],   // 500  #a08040
+  primary50:  [250, 247, 242],  // 50   #faf7f2
+  primary100: [240, 232, 216],  // 100  #f0e8d8
+  primary200: [221, 208, 176],  // 200  #ddd0b0
+  primary300: [200, 184, 136],  // 300  #c8b888
+  primary400: [192, 168, 112],  // 400  #c0a870
+  primary600: [122, 94,  40],   // 600  #7a5e28
+  primary700: [96,  62,  24],   // 700  #603e18
+  primary800: [80,  60,  20],   // 800  #503c14
+  primary900: [56,  40,  12],   // 900  #38280c
 
   // Semantic
   emerald:    [16,  185, 77],

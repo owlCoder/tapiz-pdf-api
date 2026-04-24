@@ -7,6 +7,7 @@ import { pdfRateLimiter } from "./middleware/rateLimiter";
 import { statsRouter } from "./routes/statsRoute";
 import { scoresheetRouter } from "./routes/scoresheetRoute";
 import { attendancesRouter, formsRouter } from "./routes/attendancesFormsRoute";
+import { sessionsRouter } from "./routes/sessionsRoute";
 import { docsHtml } from "./core/docs";
 
 const app = new Hono();
@@ -26,6 +27,7 @@ app.route("/api/pdf/stats",        statsRouter);
 app.route("/api/pdf/scoresheet",   scoresheetRouter);
 app.route("/api/pdf/attendances",  attendancesRouter);
 app.route("/api/pdf/forms",        formsRouter);
+app.route("/api/pdf/sessions",     sessionsRouter);
 
 // ── Health check ──────────────────────────────────────────────────
 app.get("/api/health", (c) => c.json({ status: "ok", ts: new Date().toISOString() }));

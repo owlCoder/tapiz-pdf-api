@@ -1,23 +1,21 @@
 // ──────────────────────────────────────────────────────────────────
 //  Color Palette — matches Tapiz frontend CSS custom properties
-//  Primary: Warm brown / ochre (--color-primary-* series)
+//  Primary: Prussian Navy (--color-primary-* series)
 // ──────────────────────────────────────────────────────────────────
-
 export type RGB = [number, number, number];
-
 export const C: Record<string, RGB> = {
-  // Primary warm brown shades
-  primary:    [160, 128, 64],   // 500  #a08040
-  primary50:  [250, 247, 242],  // 50   #faf7f2
-  primary100: [240, 232, 216],  // 100  #f0e8d8
-  primary200: [221, 208, 176],  // 200  #ddd0b0
-  primary300: [200, 184, 136],  // 300  #c8b888
-  primary400: [192, 168, 112],  // 400  #c0a870
-  primary600: [122, 94,  40],   // 600  #7a5e28
-  primary700: [96,  62,  24],   // 700  #603e18
-  primary800: [80,  60,  20],   // 800  #503c14
-  primary900: [56,  40,  12],   // 900  #38280c
-
+  // Primary Prussian Navy shades
+  primary:    [14,  114, 232],  // 500  #0e72e8
+  primary50:  [240, 247, 255],  // 50   #f0f7ff
+  primary100: [218, 238, 255],  // 100  #daeeff
+  primary200: [174, 216, 255],  // 200  #aed8ff
+  primary300: [112, 184, 255],  // 300  #70b8ff
+  primary400: [50,  146, 248],  // 400  #3292f8
+  primary600: [8,   87,  203],  // 600  #0857cb
+  primary700: [14,  76,  138],  // 700  #0e4c8a
+  primary800: [13,  61,  110],  // 800  #0d3d6e
+  primary900: [12,  49,  89],   // 900  #0c3159
+  
   // Semantic
   emerald:    [16,  185, 77],
   emerald50:  [236, 253, 243],
@@ -27,7 +25,6 @@ export const C: Record<string, RGB> = {
   red50:      [254, 242, 242],
   blue:       [59,  130, 246],
   blue50:     [239, 246, 255],
-
   // Grayscale
   gray50:  [249, 250, 251],
   gray100: [243, 244, 246],

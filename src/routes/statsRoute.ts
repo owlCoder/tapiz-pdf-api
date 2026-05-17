@@ -5,7 +5,7 @@ import { C } from "../core/colors";
 import { cyrillicToLatin, formatDate } from "../helpers/text";
 import {
   drawPageHeader, drawFooter, kpiCards, progressBar,
-  sessionBars, sectionTitle, roundRect,
+  sessionBars, sectionTitle, fillRect, strokeRect,
   tableHeadStyles, tableBodyStyles, tableAltRowStyles,
 } from "../helpers/pdf";
 
@@ -75,15 +75,13 @@ statsRouter.post("/", async (c) => {
 
   // Overall attendance card
   y += 2;
-  roundRect(doc, 12, y, pageW - 24, 28, 4, C.white);
-  doc.setDrawColor(...C.gray200);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(12, y, pageW - 24, 28, 4, 4, "S");
+  fillRect(doc, 9, y, pageW - 18, 28, C.white);
+  strokeRect(doc, 9, y, pageW - 18, 28, C.gray200);
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...C.gray800);
-  doc.text("Ukupno prisustvo", 18, y + 7);
+  doc.text("Ukupno prisustvo", 14, y + 7);
 
   const badgeText = avgPct >= attendanceRequired
     ? "Prosek ispunjava normu"
@@ -91,22 +89,21 @@ statsRouter.post("/", async (c) => {
   const badgeColor = avgPct >= attendanceRequired ? C.emerald : C.amber;
   const badgeBg    = avgPct >= attendanceRequired ? C.emerald50 : C.amber50;
   const tw = doc.getTextWidth(cyrillicToLatin(badgeText));
-  roundRect(doc, pageW - 12 - tw - 6, y + 3, tw + 8, 5, 2, badgeBg);
+  fillRect(doc, pageW - 9 - tw - 6, y + 3, tw + 6, 5, badgeBg);
   doc.setFontSize(6.5);
   doc.setTextColor(...badgeColor);
   doc.setFont("helvetica", "bold");
-  doc.text(cyrillicToLatin(badgeText), pageW - 12 - 3, y + 6.5, { align: "right" });
+  doc.text(cyrillicToLatin(badgeText), pageW - 9 - 3, y + 6.5, { align: "right" });
 
-  progressBar(doc, 18, y + 13, pageW - 36, avgPct, attendanceRequired);
+  progressBar(doc, 14, y + 13, pageW - 28, avgPct, attendanceRequired);
   y += 34;
 
   // Per-session bar chart
   if (perSession.length > 0) {
     sectionTitle(doc, y, "Prisustvo po terminu");
     y += 8;
-    roundRect(doc, 12, y, pageW - 24, 48, 4, C.white);
-    doc.setDrawColor(...C.gray200);
-    doc.roundedRect(12, y, pageW - 24, 48, 4, 4, "S");
+    fillRect(doc, 9, y, pageW - 18, 48, C.white);
+    strokeRect(doc, 9, y, pageW - 18, 48, C.gray200);
     y += 8;
     y = sessionBars(doc, pageW, y, perSession, enrolledCount);
     y += 6;

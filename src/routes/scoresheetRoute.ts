@@ -4,7 +4,7 @@ import autoTable from "jspdf-autotable";
 import { C } from "../core/colors";
 import { cyrillicToLatin, formatDate } from "../helpers/text";
 import {
-  drawPageHeader, drawFooter, sectionTitle, roundRect,
+  drawPageHeader, drawFooter, sectionTitle, fillRect,
   tableHeadStyles, tableBodyStyles, tableAltRowStyles,
 } from "../helpers/pdf";
 
@@ -202,13 +202,13 @@ scoresheetRouter.post("/", async (c) => {
     const cardH  = headerH + statRows.length * lineH + 5;
 
     doc.setFillColor(...C.white);
-    doc.roundedRect(x, y, cardW, cardH, 3, 3, "F");
+    doc.rect(x, y, cardW, cardH, "F");
     doc.setDrawColor(...C.gray200);
     doc.setLineWidth(0.3);
-    doc.roundedRect(x, y, cardW, cardH, 3, 3, "S");
+    doc.rect(x, y, cardW, cardH, "S");
 
     doc.setFillColor(...C.primary);
-    doc.roundedRect(x, y, cardW, 3, 1.5, 1.5, "F");
+    doc.rect(x, y, cardW, 2, "F");
     doc.setFontSize(8.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...C.primary800);

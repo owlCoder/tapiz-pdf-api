@@ -6,7 +6,7 @@ import { cyrillicToLatin, formatDate, formatDateTime } from "../helpers/text";
 import {
   drawPageHeader, drawFooter, kpiCards, sectionTitle,
   tableHeadStyles, tableBodyStyles, tableAltRowStyles,
-  roundRect,
+  fillRect,
 } from "../helpers/pdf";
 
 export const sessionsRouter = new Hono();
@@ -104,9 +104,9 @@ sessionsRouter.post("/", async (c) => {
       const labelW = doc.getTextWidth(cyrillicToLatin(type)) + 3;
 
       // Background track
-      roundRect(doc, 12 + labelW, y, barAreaW - labelW, barH, 3, C.gray100);
+      fillRect(doc, 9 + labelW, y, barAreaW - labelW, barH, C.gray100);
       // Fill
-      roundRect(doc, 12 + labelW, y, Math.max(2, fillW - labelW), barH, 3, color);
+      fillRect(doc, 9 + labelW, y, Math.max(2, fillW - labelW), barH, color);
 
       // Count badge
       doc.setFontSize(6.5);

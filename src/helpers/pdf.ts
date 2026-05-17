@@ -6,13 +6,24 @@ import { cyrillicToLatin } from "./text";
 //  Primitive helpers
 // ──────────────────────────────────────────────────────────────────
 
-export function roundRect(
+export function fillRect(
   doc: jsPDF,
   x: number, y: number, w: number, h: number,
-  r: number, fill: RGB,
+  fill: RGB,
 ): void {
   doc.setFillColor(...fill);
-  doc.roundedRect(x, y, w, h, r, r, "F");
+  doc.rect(x, y, w, h, "F");
+}
+
+export function strokeRect(
+  doc: jsPDF,
+  x: number, y: number, w: number, h: number,
+  stroke: RGB,
+  lineWidth = 0.3,
+): void {
+  doc.setDrawColor(...stroke);
+  doc.setLineWidth(lineWidth);
+  doc.rect(x, y, w, h, "S");
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -26,37 +37,35 @@ export function drawPageHeader(
   subtitle: string,
   dateLabel: string,
 ): void {
-  const headerH = 24;
+  const headerH = 22;
 
-  doc.setFillColor(...C.white);
-  doc.rect(0, 0, pageW, headerH, "F");
+  // White background
+  fillRect(doc, 0, 0, pageW, headerH, C.white);
 
-  // Thin border
-  doc.setDrawColor(...C.primary200);
+  // Left cyan accent bar (3 px wide)
+  fillRect(doc, 0, 0, 3, headerH, C.primary);
+
+  // Bottom border line
+  doc.setDrawColor(...C.gray200);
   doc.setLineWidth(0.3);
   doc.line(0, headerH, pageW, headerH);
 
-  // Thick teal accent
-  doc.setDrawColor(...C.primary);
-  doc.setLineWidth(1.2);
-  doc.line(12, headerH - 1, pageW - 12, headerH - 1);
-
   // Title
-  doc.setTextColor(...C.primary800);
-  doc.setFontSize(14);
+  doc.setTextColor(...C.gray900);
+  doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text(cyrillicToLatin(title), 12, 12);
+  doc.text(cyrillicToLatin(title), 9, 10);
 
   // Subtitle
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...C.gray500);
-  doc.text(cyrillicToLatin(subtitle), 12, 19);
+  doc.text(cyrillicToLatin(subtitle), 9, 17);
 
   // Right-aligned date
   doc.setFontSize(7);
   doc.setTextColor(...C.gray400);
-  doc.text(cyrillicToLatin(dateLabel), pageW - 12, 10, { align: "right" });
+  doc.text(cyrillicToLatin(dateLabel), pageW - 9, 10, { align: "right" });
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -72,17 +81,17 @@ export function drawFooter(doc: jsPDF, footerText: string): void {
     doc.setPage(i);
     doc.setDrawColor(...C.gray200);
     doc.setLineWidth(0.3);
-    doc.line(12, pageH - 10, pageW - 12, pageH - 10);
+    doc.line(9, pageH - 9, pageW - 9, pageH - 9);
     doc.setFontSize(6.5);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...C.gray400);
-    doc.text(cyrillicToLatin(footerText), 12, pageH - 5);
-    doc.text(`Strana ${i} od ${totalPages}`, pageW - 12, pageH - 5, { align: "right" });
+    doc.text(cyrillicToLatin(footerText), 9, pageH - 4);
+    doc.text(`${i} / ${totalPages}`, pageW - 9, pageH - 4, { align: "right" });
   }
 }
 
 // ──────────────────────────────────────────────────────────────────
-//  KPI Cards row
+//  KPI Cards row — white cards, cyan top-border accent
 // ──────────────────────────────────────────────────────────────────
 
 export interface KpiCard {
@@ -98,44 +107,40 @@ export function kpiCards(
   y: number,
   cards: KpiCard[],
 ): number {
-  const margin = 12, gap = 4;
+  const margin = 9, gap = 3;
   const n = cards.length;
   const cardW = (pageW - margin * 2 - gap * (n - 1)) / n;
-  const cardH = 24;
+  const cardH = 22;
 
-  cards.forEach((c, i) => {
+  cards.forEach((card, i) => {
     const cx = margin + i * (cardW + gap);
 
-    doc.setFillColor(...C.white);
-    doc.roundedRect(cx, y, cardW, cardH, 3, 3, "F");
-    doc.setDrawColor(...C.gray200);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(cx, y, cardW, cardH, 3, 3, "S");
+    fillRect(doc, cx, y, cardW, cardH, C.white);
+    strokeRect(doc, cx, y, cardW, cardH, C.gray200);
 
-    // Color top accent bar
-    doc.setFillColor(...c.color);
-    doc.roundedRect(cx, y, cardW, 3, 1.5, 1.5, "F");
+    // Top accent line (2 px)
+    fillRect(doc, cx, y, cardW, 2, card.color);
 
     // Value
-    doc.setFontSize(16);
+    doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(...c.color);
-    doc.text(cyrillicToLatin(c.value), cx + cardW / 2, y + 12, { align: "center" });
+    doc.setTextColor(...card.color);
+    doc.text(cyrillicToLatin(card.value), cx + cardW / 2, y + 12, { align: "center" });
 
     // Label
     doc.setFontSize(6.5);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(...C.gray600);
-    doc.text(cyrillicToLatin(c.label), cx + cardW / 2, y + 18.5, { align: "center" });
+    doc.setTextColor(...C.gray500);
+    doc.text(cyrillicToLatin(card.label), cx + cardW / 2, y + 18, { align: "center" });
 
-    if (c.sub) {
+    if (card.sub) {
       doc.setFontSize(5);
       doc.setTextColor(...C.gray400);
-      doc.text(cyrillicToLatin(c.sub), cx + cardW / 2, y + 22, { align: "center" });
+      doc.text(cyrillicToLatin(card.sub), cx + cardW / 2, y + 21, { align: "center" });
     }
   });
 
-  return y + cardH + 8;
+  return y + cardH + 6;
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -147,13 +152,13 @@ export function progressBar(
   x: number, y: number, w: number,
   pct: number, required: number,
 ): void {
-  const barH = 6;
-  roundRect(doc, x, y, w, barH, 3, C.gray100);
+  const barH = 5;
+  fillRect(doc, x, y, w, barH, C.gray100);
 
   const fillW = Math.max(2, (w * Math.min(pct, 100)) / 100);
   const fillColor: RGB =
     pct >= required ? C.emerald : pct >= 50 ? C.amber : C.red;
-  roundRect(doc, x, y, fillW, barH, 3, fillColor);
+  fillRect(doc, x, y, fillW, barH, fillColor);
 
   // Threshold marker
   const markerX = x + (w * required) / 100;
@@ -193,13 +198,13 @@ export function sessionBars(
   sessions: SessionBar[],
   total: number,
 ): number {
-  const margin = 19;
+  const margin = 16;
   const chartW = pageW - margin * 2;
-  const maxH = 28;
+  const maxH = 26;
   const n = sessions.length;
   if (n === 0) return y;
 
-  const barW = Math.min(12, (chartW - (n - 1) * 2) / n);
+  const barW = Math.min(11, (chartW - (n - 1) * 2) / n);
   const totalBarsW = n * barW + (n - 1) * 2;
   const startX = margin + (chartW - totalBarsW) / 2;
 
@@ -213,11 +218,11 @@ export function sessionBars(
     const bx = startX + i * (barW + 2);
     const by = y + maxH - barH;
     const color: RGB = p >= 0.7 ? C.emerald : p >= 0.5 ? C.amber : C.primary;
-    roundRect(doc, bx, by, barW, barH, 2, color);
+    fillRect(doc, bx, by, barW, barH, color);
 
     doc.setFontSize(5.5);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(...C.gray600);
+    doc.setTextColor(...C.gray500);
     doc.text(`T${s.sessionNumber}`, bx + barW / 2, y + maxH + 4, { align: "center" });
 
     if (barH > 10) {
@@ -231,16 +236,15 @@ export function sessionBars(
 }
 
 // ──────────────────────────────────────────────────────────────────
-//  Section title with teal left-accent bar
+//  Section title — left cyan accent bar (Grid Brutalism style)
 // ──────────────────────────────────────────────────────────────────
 
 export function sectionTitle(doc: jsPDF, y: number, text: string): void {
-  doc.setFillColor(...C.primary);
-  doc.rect(12, y - 2, 3, 6, "F");
-  doc.setFontSize(10);
+  fillRect(doc, 9, y - 2, 3, 6, C.primary);
+  doc.setFontSize(9.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...C.gray800);
-  doc.text(cyrillicToLatin(text), 18, y + 2);
+  doc.text(cyrillicToLatin(text), 15, y + 2);
 }
 
 // ──────────────────────────────────────────────────────────────────

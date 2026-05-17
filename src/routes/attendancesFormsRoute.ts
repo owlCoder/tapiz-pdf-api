@@ -5,7 +5,7 @@ import { C } from "../core/colors";
 import { cyrillicToLatin, formatDate, formatDateTime } from "../helpers/text";
 import {
   drawPageHeader, drawFooter, kpiCards, sessionBars,
-  sectionTitle, roundRect,
+  sectionTitle, fillRect, strokeRect,
   tableHeadStyles, tableBodyStyles, tableAltRowStyles,
 } from "../helpers/pdf";
 
@@ -62,9 +62,8 @@ attendancesRouter.post("/", async (c) => {
   if (sessionNums.length > 0) {
     sectionTitle(doc, y, "Odaziv po terminu");
     y += 8;
-    roundRect(doc, 12, y, pageW - 24, 48, 4, C.white);
-    doc.setDrawColor(...C.gray200);
-    doc.roundedRect(12, y, pageW - 24, 48, 4, 4, "S");
+    fillRect(doc, 9, y, pageW - 18, 48, C.white);
+    strokeRect(doc, 9, y, pageW - 18, 48, C.gray200);
     y += 8;
     y = sessionBars(
       doc, pageW, y,

@@ -1,31 +1,33 @@
 // ──────────────────────────────────────────────────────────────────
-//  Color Palette — matches Tapiz frontend CSS custom properties
-//  Primary: Prussian Navy (--color-primary-* series)
+//  Color Palette — matches Tapiz UI CSS custom properties
+//  Primary: Electric Cyan (--color-primary-* series)
+//  Print-safe: light backgrounds only, no dark fills except accents
 // ──────────────────────────────────────────────────────────────────
 export type RGB = [number, number, number];
 export const C: Record<string, RGB> = {
-  // Primary Prussian Navy shades
-  primary:    [14,  114, 232],  // 500  #0e72e8
-  primary50:  [240, 247, 255],  // 50   #f0f7ff
-  primary100: [218, 238, 255],  // 100  #daeeff
-  primary200: [174, 216, 255],  // 200  #aed8ff
-  primary300: [112, 184, 255],  // 300  #70b8ff
-  primary400: [50,  146, 248],  // 400  #3292f8
-  primary600: [8,   87,  203],  // 600  #0857cb
-  primary700: [14,  76,  138],  // 700  #0e4c8a
-  primary800: [13,  61,  110],  // 800  #0d3d6e
-  primary900: [12,  49,  89],   // 900  #0c3159
-  
-  // Semantic
-  emerald:    [16,  185, 77],
-  emerald50:  [236, 253, 243],
-  amber:      [217, 119, 6],
+  // Primary — Electric Cyan
+  primary:    [14,  116, 144],  // 500  #0e7490  (light-mode primary-500)
+  primary50:  [232, 251, 255],  // 50   #e8fbff
+  primary100: [199, 245, 255],  // 100  #c7f5ff
+  primary200: [153, 238, 255],  // 200  #99eeff
+  primary300: [14,  165, 201],  // 300  #0ea5c9  (light-mode primary-300)
+  primary400: [8,   145, 178],  // 400  #0891b2  (light-mode primary-400)
+  primary600: [20,  150, 179],  // 600  #1496b3
+  primary700: [14,  112, 136],  // 700  #0e7088
+  primary800: [10,  79,  96],   // 800  #0a4f60
+  primary900: [6,   47,  59],   // 900  #062f3b
+
+  // Semantic — print-safe, light tint backgrounds
+  emerald:    [5,   150, 105],  // #059669 (light-mode good)
+  emerald50:  [209, 250, 229],
+  amber:      [180, 83,  9],    // #b45309
   amber50:    [255, 251, 235],
-  red:        [220, 38,  38],
+  red:        [185, 28,  28],   // #b91c1c
   red50:      [254, 242, 242],
-  blue:       [59,  130, 246],
+  blue:       [37,  99,  235],  // #2563eb
   blue50:     [239, 246, 255],
-  // Grayscale
+
+  // Grayscale — light mode (white paper)
   gray50:  [249, 250, 251],
   gray100: [243, 244, 246],
   gray200: [229, 231, 235],

@@ -86,42 +86,44 @@ sessionsRouter.post("/", async (c) => {
     sectionTitle(doc, y, "Raspodela po tipu termina");
     y += 8;
 
-    const barAreaW = pageW - 24;
-    const barH     = 7;
-    const gap      = 5;
+    const labelColW = 38;          // fixed width for label column
+    const pctColW   = 10;          // fixed width for "%" on the right
+    const barStartX = 12 + labelColW;
+    const barEndX   = pageW - 12 - pctColW - 2;
+    const barAreaW  = barEndX - barStartX;
+    const barH      = 6;
+    const gap       = 5;
+    const barMidY   = (row: number) => row + barH / 2 + 0.5; // vertical centre baseline
 
     typeEntries.forEach(([type, count], i) => {
-      const pct  = total > 0 ? count / total : 0;
+      const pct   = total > 0 ? count / total : 0;
       const fillW = Math.max(2, pct * barAreaW);
       const color = [C.primary, C.blue, C.emerald, C.amber][i % 4];
 
-      // Track label
+      // Label — right-aligned inside fixed label column, vertically centred
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...C.gray700);
-      doc.text(cyrillicToLatin(type), 12, y + barH - 1);
-
-      const labelW = doc.getTextWidth(cyrillicToLatin(type)) + 3;
+      doc.text(cyrillicToLatin(type), barStartX - 3, barMidY(y), { align: "right" });
 
       // Background track
-      fillRect(doc, 9 + labelW, y, barAreaW - labelW, barH, C.gray100);
-      // Fill
-      fillRect(doc, 9 + labelW, y, Math.max(2, fillW - labelW), barH, color);
+      fillRect(doc, barStartX, y, barAreaW, barH, C.gray100);
+      // Coloured fill
+      fillRect(doc, barStartX, y, fillW, barH, color);
 
-      // Count badge
-      doc.setFontSize(6.5);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...C.white);
-      const fillEnd = 12 + labelW + Math.max(2, fillW - labelW);
-      if (fillW - labelW > 14) {
-        doc.text(`${count}`, fillEnd - 4, y + barH - 2, { align: "right" });
+      // Count badge inside the bar (only if bar is wide enough)
+      if (fillW > 12) {
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...C.white);
+        doc.text(`${count}`, barStartX + fillW - 2, barMidY(y), { align: "right" });
       }
 
-      // Percentage on the right
+      // Percentage — right-aligned in pct column
       doc.setFontSize(6.5);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...C.gray500);
-      doc.text(`${Math.round(pct * 100)}%`, pageW - 12, y + barH - 2, { align: "right" });
+      doc.text(`${Math.round(pct * 100)}%`, pageW - 12, barMidY(y), { align: "right" });
 
       y += barH + gap;
     });

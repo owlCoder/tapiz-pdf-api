@@ -211,7 +211,7 @@ Generates a detailed attendance log PDF with KPI cards, a per-session bar chart,
 }
 ```
 
-Session types: `Predavanja`, `Racunarske vezbe`, `Auditorne vezbe`, `Labaratorijske vezbe` — each rendered in a distinct color.
+Session types: `Predavanja`, `Racunarske vezbe`, `Auditorne vezbe`, `Laboratorijske vezbe` — each rendered in a distinct color.
 
 ---
 

@@ -390,7 +390,7 @@ isHidden: true — column excluded from the exported PDF</pre>
   ]
 }</pre>
       <div class="schema-label">Session types</div>
-      <pre>Predavanja | Racunarske vezbe | Auditorne vezbe | Labaratorijske vezbe</pre>
+      <pre>Predavanja | Racunarske vezbe | Auditorne vezbe | Laboratorijske vezbe</pre>
       <div class="responses">
         <span class="resp-pill"><span class="code code-200">200</span> PDF binary stream</span>
         <span class="resp-pill"><span class="code code-400">400</span> Missing required fields</span>

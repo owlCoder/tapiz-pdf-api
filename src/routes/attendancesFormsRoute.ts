@@ -118,7 +118,7 @@ attendancesRouter.post("/", async (c) => {
         if (type === "Predavanja")            data.cell.styles.textColor = C.blue;
         else if (type === "Racunarske vezbe") data.cell.styles.textColor = C.primary;
         else if (type === "Auditorne vezbe")  data.cell.styles.textColor = C.amber;
-        else if (type === "Labaratorijske vezbe") data.cell.styles.textColor = C.emerald;
+        else if (type === "Laboratorijske vezbe") data.cell.styles.textColor = C.emerald;
         data.cell.styles.fontStyle = "bold";
       }
     },
